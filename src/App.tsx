@@ -31,7 +31,7 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.7);
   
-  const searchDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleSearch = async () => {
