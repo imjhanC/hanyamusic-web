@@ -1,16 +1,29 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader } from "lucide-react";
 import "./index.css"; // Import the external CSS file
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
+// Define TypeScript interfaces
+interface Song {
+  videoId: string;
+  title: string;
+  uploader: string;
+  thumbnail_url: string;
+  duration: string;
+  view_count: string;
+  stream_url?: string;
+  format?: string;
+  quality?: string;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("Home");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [currentSong, setCurrentSong] = useState(null);
+  const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isLoadingStream, setIsLoadingStream] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,8 +31,8 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.7);
   
-  const searchDebounceTimer = useRef(null);
-  const audioRef = useRef(null);
+  const searchDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
@@ -60,9 +73,10 @@ export default function App() {
         setSearchResults(data);
         setActiveTab("Home");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Search error:', error);
-      alert(`Failed to search: ${error.message}. Please check the console for details.`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to search: ${errorMessage}. Please check the console for details.`);
       setSearchResults([]);
       setActiveTab("Home");
     } finally {
@@ -70,7 +84,7 @@ export default function App() {
     }
   };
 
-  const handleSearchInputChange = (e) => {
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
 
@@ -95,7 +109,7 @@ export default function App() {
     }, 1000);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (searchDebounceTimer.current) {
         clearTimeout(searchDebounceTimer.current);
@@ -114,7 +128,7 @@ export default function App() {
     };
   }, []);
 
-  const handlePlaySong = async (song) => {
+  const handlePlaySong = async (song: Song) => {
     setIsLoadingStream(true);
     try {
       const url = `${API_BASE_URL}/stream/${song.videoId}`;
@@ -148,9 +162,10 @@ export default function App() {
       });
       setIsPlaying(true);
       setCurrentTime(0);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Stream error:', error);
-      alert(`Failed to load audio stream: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to load audio stream: ${errorMessage}`);
     } finally {
       setIsLoadingStream(false);
     }
@@ -179,7 +194,7 @@ export default function App() {
     }
   };
 
-  const handleProgressClick = (e) => {
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current || !currentSong) return;
     
     const progressBar = e.currentTarget;
@@ -192,7 +207,7 @@ export default function App() {
     setCurrentTime(newTime);
   };
 
-  const handleVolumeChange = (e) => {
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value) / 100;
     setVolume(newVolume);
     if (audioRef.current) {
@@ -200,7 +215,7 @@ export default function App() {
     }
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -569,7 +584,7 @@ export default function App() {
   );
 }
 
-function getRandomColor() {
+function getRandomColor(): string {
   const colors = [
     "#667eea", "#764ba2", "#f093fb", "#4facfe",
     "#43e97b", "#fa709a", "#fee140", "#30cfd0"
