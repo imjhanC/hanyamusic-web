@@ -108,7 +108,7 @@ export default function App() {
       if (value.trim().length >= 2) {
         handleSearch();
       }
-    }, 3000); // Changed from 1000 to 3000
+    }, 3000);
   };
 
   const handleClearSearch = () => {
@@ -337,10 +337,10 @@ export default function App() {
                   </div>
                 </div>
                 <h3 className="music-card-title" title={song.title}>
-                  {song.title}
+                  <span>{song.title}</span>
                 </h3>
                 <p className="music-card-artist" title={song.uploader}>
-                  {song.uploader}
+                  <span>{song.uploader}</span>
                 </p>
                 <div className="song-info">
                   <span>{song.duration}</span>

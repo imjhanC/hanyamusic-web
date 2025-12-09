@@ -305,17 +305,70 @@ body {
   font-size: 16px;
   margin-bottom: 6px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   color: #e5e7eb;
+  position: relative;
+  width: 100%;
+}
+
+.music-card-title > span {
+  display: inline-block;
+  white-space: nowrap;
+  min-width: 100%;
+}
+
+.music-card:hover .music-card-title > span {
+  animation: marqueeTitle 10s ease-in-out infinite;
 }
 
 .music-card-artist {
   color: #9ca3af;
   font-size: 14px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  position: relative;
+  width: 100%;
+}
+
+.music-card-artist > span {
+  display: inline-block;
+  white-space: nowrap;
+  min-width: 100%;
+}
+
+.music-card:hover .music-card-artist > span {
+  animation: marqueeArtist 10s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes marqueeTitle {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(calc(-100% + 168px));
+  }
+  55%, 70% {
+    transform: translateX(calc(-100% + 168px));
+  }
+  95%, 100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes marqueeArtist {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(calc(-100% + 168px));
+  }
+  55%, 70% {
+    transform: translateX(calc(-100% + 168px));
+  }
+  95%, 100% {
+    transform: translateX(0);
+  }
 }
 
 .song-info {
