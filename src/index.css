@@ -159,7 +159,7 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 12px 50px 12px 45px;
+  padding: 12px 70px 12px 45px;
   border: 2px solid #333;
   border-radius: 12px;
   font-size: 15px;
@@ -196,14 +196,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.typing-indicator {
-  color: #6b7280;
-  font-size: 12px;
-  background: #333;
-  padding: 4px 8px;
-  border-radius: 4px;
+  z-index: 1;
 }
 
 .user-icon {
@@ -234,7 +227,6 @@ body {
   overflow-y: auto;
   background: #121212;
   transition: margin-left 0.3s ease, width 0.3s ease;
-  /* Add bottom padding for music player */
   padding-bottom: 120px;
 }
 
@@ -334,6 +326,75 @@ body {
   margin-top: 8px;
 }
 
+/* Search Loading Container */
+.search-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+/* Music Visualizer Animation */
+.music-visualizer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  height: 120px;
+  margin-bottom: 30px;
+}
+
+.visualizer-bar {
+  width: 12px;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 6px;
+  animation: visualizerPulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+}
+
+@keyframes visualizerPulse {
+  0%, 100% {
+    height: 20px;
+    opacity: 0.3;
+  }
+  50% {
+    height: 100px;
+    opacity: 1;
+  }
+}
+
+.loading-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 8px;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+.loading-subtext {
+  font-size: 16px;
+  color: #9ca3af;
+  animation: fadeInOut 2s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Remove dot-flashing animation */
+.dot-flashing,
+.debounce-loader {
+  display: none !important;
+}
+
 /* Music Player Styles */
 .music-player {
   position: fixed;
@@ -394,11 +455,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.loading-text {
-  margin-left: 10px;
-  color: #9ca3af;
 }
 
 .player-song-info {
@@ -623,6 +679,71 @@ body {
   animation: slideUp 0.4s ease-out;
 }
 
+/* Clear search button */
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.clear-search-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+/* Remove the typing indicator styles */
+.typing-indicator {
+  display: none !important;
+}
+
+/* Scrollbar Styling */
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #1f1f1f;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .sidebar {
@@ -710,6 +831,36 @@ body {
     width: 50px;
     height: 50px;
   }
+  
+  .search-loading-container {
+    min-height: 300px;
+    padding: 30px;
+  }
+  
+  .music-visualizer {
+    height: 100px;
+    gap: 6px;
+  }
+  
+  .visualizer-bar {
+    width: 10px;
+  }
+  
+  .loading-text {
+    font-size: 22px;
+  }
+  
+  .loading-subtext {
+    font-size: 14px;
+  }
+  
+  .clear-search-btn {
+    right: 35px;
+  }
+  
+  .search-input {
+    padding: 10px 60px 10px 35px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -722,7 +873,7 @@ body {
   }
   
   .search-input {
-    padding: 10px 40px 10px 35px;
+    padding: 10px 50px 10px 35px;
     font-size: 14px;
   }
   
@@ -781,190 +932,43 @@ body {
     width: 44px;
     height: 44px;
   }
-}
-
-/* Scrollbar Styling */
-.main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: #1f1f1f;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-/* Clear search button */
-.clear-search-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  z-index: 2;
-}
-
-.clear-search-btn:hover {
-  background: #333;
-  color: #fff;
-}
-
-/* Adjust search input padding to make room for clear button */
-.search-input {
-  width: 100%;
-  padding: 12px 70px 12px 45px; /* Increased right padding from 50px to 70px */
-  border: 2px solid #333;
-  border-radius: 12px;
-  font-size: 15px;
-  outline: none;
-  transition: all 0.3s ease;
-  background: #1f1f1f;
-  color: #e5e7eb;
-}
-
-/* Update search status position */
-.search-status {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-/* Remove the typing indicator styles */
-.typing-indicator {
-  display: none !important;
-}
-
-/* Dot flashing animation for debouncing */
-.dot-flashing {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: #22c55e;
-  animation: dot-flashing 1s infinite linear alternate;
-  animation-delay: 0.5s;
-}
-
-.dot-flashing::before,
-.dot-flashing::after {
-  content: '';
-  display: inline-block;
-  position: absolute;
-  top: 0;
-}
-
-.dot-flashing::before {
-  left: -30px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: #22c55e;
-  animation: dot-flashing 1s infinite alternate;
-  animation-delay: 0s;
-}
-
-.dot-flashing::after {
-  left: 30px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: #22c55e;
-  animation: dot-flashing 1s infinite alternate;
-  animation-delay: 1s;
-}
-
-@keyframes dot-flashing {
-  0% {
-    opacity: 0.3;
-    transform: scale(0.7);
-  }
-  50%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Debounce loader container */
-.debounce-loader {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Responsive adjustments for clear button */
-@media (max-width: 768px) {
-  .clear-search-btn {
-    right: 35px;
+  
+  .search-loading-container {
+    min-height: 250px;
+    padding: 20px;
   }
   
-  .search-input {
-    padding: 10px 60px 10px 35px; /* Adjusted for mobile */
+  .music-visualizer {
+    height: 80px;
+    gap: 5px;
   }
-}
-
-@media (max-width: 480px) {
+  
+  .visualizer-bar {
+    width: 8px;
+  }
+  
+  @keyframes visualizerPulse {
+    0%, 100% {
+      height: 15px;
+      opacity: 0.3;
+    }
+    50% {
+      height: 70px;
+      opacity: 1;
+    }
+  }
+  
+  .loading-text {
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .loading-subtext {
+    font-size: 13px;
+    text-align: center;
+  }
+  
   .clear-search-btn {
     right: 30px;
-  }
-  
-  .search-input {
-    padding: 10px 50px 10px 35px; /* Adjusted for smaller screens */
-  }
-  
-  .dot-flashing {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .dot-flashing::before {
-    left: -24px;
-    width: 16px;
-    height: 16px;
-  }
-  
-  .dot-flashing::after {
-    left: 24px;
-    width: 16px;
-    height: 16px;
   }
 }

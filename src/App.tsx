@@ -275,6 +275,36 @@ export default function App() {
   }, [currentSong, isPlaying]);
 
   const renderContent = () => {
+    // Show loading animation while debouncing
+    if (isDebouncing && searchQuery.trim().length >= 2) {
+      return (
+        <div className="search-loading-container">
+          <div className="music-visualizer">
+            <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
+          </div>
+          <h2 className="loading-text">Searching for "{searchQuery}"</h2>
+          <p className="loading-subtext">Finding the best music for you...</p>
+        </div>
+      );
+    }
+
+    // Show searching spinner while fetching results
+    if (isSearching) {
+      return (
+        <div className="search-loading-container">
+          <Loader size={48} className="spinner" />
+          <h2 className="loading-text">Loading results...</h2>
+        </div>
+      );
+    }
+
     if (activeTab === "Home" && searchResults.length > 0) {
       return (
         <div>
@@ -441,13 +471,9 @@ export default function App() {
             )}
             
             <div className="search-status">
-              {isSearching ? (
+              {isSearching && (
                 <Loader size={20} className="spinner" />
-              ) : isDebouncing && searchQuery.trim().length >= 2 ? (
-                <div className="debounce-loader">
-                  <div className="dot-flashing"></div>
-                </div>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
