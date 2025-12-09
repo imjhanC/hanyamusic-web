@@ -86,14 +86,7 @@ export default function App() {
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
-    // Add space after user input (only if there's text and doesn't already end with space)
-    let newValue = value;
-    if (value.trim() && !value.endsWith(' ')) {
-      newValue = value + ' ';
-    }
-    
-    setSearchQuery(newValue);
+    setSearchQuery(value);
 
     if (searchDebounceTimer.current) {
       clearTimeout(searchDebounceTimer.current);
@@ -115,7 +108,7 @@ export default function App() {
       if (value.trim().length >= 2) {
         handleSearch();
       }
-    }, 3000);
+    }, 3000); // Changed from 1000 to 3000
   };
 
   const handleClearSearch = () => {
