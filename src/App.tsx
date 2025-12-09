@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader } from "lucide-react";
-import "./index.css"; // Import the external CSS file
+import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader, X } from "lucide-react";
+import "./index.css";
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
-// Define TypeScript interfaces
 interface Song {
   videoId: string;
   title: string;
@@ -29,7 +28,8 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.7);
+  const [volume, setVolume] = useState(1.0);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -99,14 +99,28 @@ export default function App() {
       return;
     }
 
+    // Start debouncing animation
     setIsDebouncing(true);
     
+    // Wait 3 seconds after user stops typing before searching
     searchDebounceTimer.current = setTimeout(() => {
       setIsDebouncing(false);
       if (value.trim().length >= 2) {
         handleSearch();
       }
-    }, 1000);
+    }, 3000); // Changed from 1000 to 3000
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setActiveTab("Home");
+    setIsDebouncing(false);
+    
+    if (searchDebounceTimer.current) {
+      clearTimeout(searchDebounceTimer.current);
+      searchDebounceTimer.current = null;
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -162,12 +176,23 @@ export default function App() {
       });
       setIsPlaying(true);
       setCurrentTime(0);
+      setShowMusicPlayer(true);
     } catch (error: unknown) {
       console.error('Stream error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to load audio stream: ${errorMessage}`);
     } finally {
       setIsLoadingStream(false);
+    }
+  };
+
+  const handleClosePlayer = () => {
+    setShowMusicPlayer(false);
+    setCurrentSong(null);
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
   };
 
@@ -232,14 +257,31 @@ export default function App() {
     audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && currentSong) {
+        handleClosePlayer();
+      }
+      if (e.key === ' ' && e.target === document.body) {
+        e.preventDefault();
+        if (currentSong) {
+          togglePlayPause();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentSong, isPlaying]);
+
   const renderContent = () => {
     if (activeTab === "Home" && searchResults.length > 0) {
       return (
         <div>
-          <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "10px" }}>
+          <h1 className="main-heading">
             Search Results
           </h1>
-          <p style={{ color: "#6b7280", fontSize: "16px", marginBottom: "30px" }}>
+          <p className="main-subtitle">
             Found {searchResults.length} results for "{searchQuery}"
           </p>
 
@@ -260,22 +302,7 @@ export default function App() {
                     position: 'relative'
                   }}
                 >
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: 0,
-                    transition: 'opacity 0.3s ease',
-                    borderRadius: '12px'
-                  }}
-                  className="play-overlay"
-                  >
+                  <div className="play-overlay">
                     <Play size={40} fill="white" color="white" />
                   </div>
                 </div>
@@ -285,13 +312,7 @@ export default function App() {
                 <p className="music-card-artist" title={song.uploader}>
                   {song.uploader}
                 </p>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  fontSize: '12px', 
-                  color: '#9ca3af',
-                  marginTop: '8px'
-                }}>
+                <div className="song-info">
                   <span>{song.duration}</span>
                   <span>{song.view_count}</span>
                 </div>
@@ -305,10 +326,10 @@ export default function App() {
     if (activeTab === "Home") {
       return (
         <div>
-          <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "10px" }}>
-            Welcome to <span style={{ color: '#22c55e' }}>Hanya</span>Music
+          <h1 className="main-heading">
+            Welcome to <span className="brand-color">Hanya</span>Music
           </h1>
-          <p style={{ color: "#6b7280", fontSize: "16px", marginBottom: "30px" }}>
+          <p className="main-subtitle">
             Search for your favorite music using the search bar above
           </p>
 
@@ -334,10 +355,10 @@ export default function App() {
 
     return (
       <div>
-        <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "10px" }}>
+        <h1 className="main-heading">
           {activeTab}
         </h1>
-        <p style={{ color: "#6b7280", fontSize: "16px", marginBottom: "30px" }}>
+        <p className="main-subtitle">
           This section is under development
         </p>
       </div>
@@ -351,7 +372,7 @@ export default function App() {
         <div className="sidebar-header">
           {!isSidebarCollapsed && (
             <h2 className="sidebar-logo">
-              <span style={{ color: '#22c55e' }}>Hanya</span>Music
+              <span className="brand-color">Hanya</span>Music
             </h2>
           )}
           <button
@@ -366,28 +387,28 @@ export default function App() {
             className={`sidebar-link ${activeTab === "Home" ? "active" : ""}`}
             onClick={() => setActiveTab("Home")}
           >
-            <Home size={20} style={{ display: "inline", marginRight: isSidebarCollapsed ? "0" : "10px" }} />
+            <Home size={20} className="sidebar-icon" />
             {!isSidebarCollapsed && "Home"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Trending" ? "active" : ""}`}
             onClick={() => setActiveTab("Trending")}
           >
-            <TrendingUp size={20} style={{ display: "inline", marginRight: isSidebarCollapsed ? "0" : "10px" }} />
+            <TrendingUp size={20} className="sidebar-icon" />
             {!isSidebarCollapsed && "Trending"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Playlists" ? "active" : ""}`}
             onClick={() => setActiveTab("Playlists")}
           >
-            <ListMusic size={20} style={{ display: "inline", marginRight: isSidebarCollapsed ? "0" : "10px" }} />
+            <ListMusic size={20} className="sidebar-icon" />
             {!isSidebarCollapsed && "Playlists"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Your Songs" ? "active" : ""}`}
             onClick={() => setActiveTab("Your Songs")}
           >
-            <Music2 size={20} style={{ display: "inline", marginRight: isSidebarCollapsed ? "0" : "10px" }} />
+            <Music2 size={20} className="sidebar-icon" />
             {!isSidebarCollapsed && "Your Songs"}
           </a>
         </nav>
@@ -408,26 +429,23 @@ export default function App() {
             />
             <Search className="search-icon" size={20} />
             
-            <div style={{
-              position: 'absolute',
-              right: '15px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+            {/* Clear search button */}
+            {searchQuery && !isSearching && (
+              <button
+                className="clear-search-btn"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+            
+            <div className="search-status">
               {isSearching ? (
-                <Loader size={20} style={{ animation: 'spin 1s linear infinite', color: '#22c55e' }} />
-              ) : isDebouncing ? (
-                <div style={{ 
-                  color: '#6b7280',
-                  fontSize: '12px',
-                  background: '#333',
-                  padding: '4px 8px',
-                  borderRadius: '4px'
-                }}>
-                  Typing...
+                <Loader size={20} className="spinner" />
+              ) : isDebouncing && searchQuery.trim().length >= 2 ? (
+                <div className="debounce-loader">
+                  <div className="dot-flashing"></div>
                 </div>
               ) : null}
             </div>
@@ -443,140 +461,161 @@ export default function App() {
         {renderContent()}
       </div>
 
+      {/* Mini Player Trigger (Floating Button) */}
+      {!showMusicPlayer && currentSong && (
+        <div 
+          className="mini-player-trigger"
+          onClick={() => setShowMusicPlayer(true)}
+          title="Show music player"
+        >
+          <Music2 size={24} color="white" />
+        </div>
+      )}
+
       {/* Music Player */}
-      <div className={`music-player ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        {isLoadingStream ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Loader size={24} style={{ animation: 'spin 1s linear infinite', color: '#22c55e' }} />
-            <span style={{ marginLeft: '10px', color: '#9ca3af' }}>Loading stream...</span>
-          </div>
-        ) : currentSong ? (
+      <div className={`music-player ${isSidebarCollapsed ? "collapsed" : ""} ${showMusicPlayer ? "show" : ""}`}>
+        {showMusicPlayer && (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: "15px", minWidth: "250px" }}>
-              <div
-                style={{
-                  width: "50px",
-                  height: "50px",
-                  backgroundImage: `url(${currentSong.thumbnail_url})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  borderRadius: "8px"
-                }}
-              ></div>
-              <div>
-                <div style={{ fontWeight: "600", fontSize: "14px" }} title={currentSong.title}>
-                  {currentSong.title.length > 30 ? currentSong.title.substring(0, 30) + '...' : currentSong.title}
+            <button
+              className="close-player-btn"
+              onClick={handleClosePlayer}
+            >
+              <X size={18} />
+            </button>
+            
+            {isLoadingStream ? (
+              <div className="loading-stream">
+                <Loader size={24} className="spinner" />
+                <span className="loading-text">Loading stream...</span>
+              </div>
+            ) : currentSong ? (
+              <>
+                <div className="player-song-info">
+                  <div
+                    className="player-thumbnail"
+                    style={{
+                      backgroundImage: `url(${currentSong.thumbnail_url})`,
+                    }}
+                  ></div>
+                  <div className="player-song-details">
+                    <div className="player-song-title" title={currentSong.title}>
+                      {currentSong.title.length > 30 ? currentSong.title.substring(0, 30) + '...' : currentSong.title}
+                    </div>
+                    <div className="player-song-artist" title={currentSong.uploader}>
+                      {currentSong.uploader}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ color: "#6b7280", fontSize: "12px" }} title={currentSong.uploader}>
-                  {currentSong.uploader}
+
+                <div className="player-controls">
+                  <button className="control-btn" onClick={handleSkipBack}>
+                    <SkipBack size={18} />
+                  </button>
+                  <button className="control-btn play-btn" onClick={togglePlayPause}>
+                    {isPlaying ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                        <rect x="6" y="4" width="4" height="16" rx="1"/>
+                        <rect x="14" y="4" width="4" height="16" rx="1"/>
+                      </svg>
+                    ) : (
+                      <Play size={20} fill="white" />
+                    )}
+                  </button>
+                  <button className="control-btn" onClick={handleSkipForward}>
+                    <SkipForward size={18} />
+                  </button>
                 </div>
-              </div>
-            </div>
 
-            <div className="player-controls">
-              <button className="control-btn" onClick={handleSkipBack}>
-                <SkipBack size={18} />
-              </button>
-              <button className="control-btn play-btn" onClick={togglePlayPause}>
-                {isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                    <rect x="6" y="4" width="4" height="16" rx="1"/>
-                    <rect x="14" y="4" width="4" height="16" rx="1"/>
-                  </svg>
-                ) : (
-                  <Play size={20} fill="white" />
-                )}
-              </button>
-              <button className="control-btn" onClick={handleSkipForward}>
-                <SkipForward size={18} />
-              </button>
-            </div>
+                <div className="progress-container">
+                  <div className="progress-bar" onClick={handleProgressClick}>
+                    <div 
+                      className="progress-fill" 
+                      style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                  <div className="progress-time">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
 
-            <div className="progress-container">
-              <div className="progress-bar" onClick={handleProgressClick}>
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                ></div>
-              </div>
-              <div className="progress-time">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
+                <div className="volume-control">
+                  <Volume2 size={20} className="volume-icon" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={volume * 100}
+                    onChange={handleVolumeChange}
+                    className="volume-slider"
+                  />
+                </div>
 
-            <div className="volume-control">
-              <Volume2 size={20} style={{ color: "#6b7280" }} />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume * 100}
-                onChange={handleVolumeChange}
-                className="volume-slider"
-              />
-            </div>
+                <audio
+                  ref={audioRef}
+                  key={currentSong.videoId}
+                  src={currentSong.stream_url}
+                  autoPlay
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Audio error:', e);
+                    alert('Failed to play audio. Please try another song.');
+                    handleClosePlayer();
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </>
+            ) : (
+              <>
+                <div className="player-song-info">
+                  <div
+                    className="player-thumbnail"
+                    style={{
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    }}
+                  ></div>
+                  <div className="player-song-details">
+                    <div className="player-song-title">No Song Playing</div>
+                    <div className="player-song-artist">Search and select a song</div>
+                  </div>
+                </div>
 
-            <audio
-              ref={audioRef}
-              key={currentSong.videoId}
-              src={currentSong.stream_url}
-              autoPlay
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onEnded={() => setIsPlaying(false)}
-              style={{ display: 'none' }}
-            />
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: "15px", minWidth: "250px" }}>
-              <div
-                style={{
-                  width: "50px",
-                  height: "50px",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  borderRadius: "8px"
-                }}
-              ></div>
-              <div>
-                <div style={{ fontWeight: "600", fontSize: "14px" }}>No Song Playing</div>
-                <div style={{ color: "#6b7280", fontSize: "12px" }}>Search and select a song</div>
-              </div>
-            </div>
+                <div className="player-controls">
+                  <button className="control-btn" disabled>
+                    <SkipBack size={18} />
+                  </button>
+                  <button className="control-btn play-btn" disabled>
+                    <Play size={20} fill="white" />
+                  </button>
+                  <button className="control-btn" disabled>
+                    <SkipForward size={18} />
+                  </button>
+                </div>
 
-            <div className="player-controls">
-              <button className="control-btn" disabled>
-                <SkipBack size={18} />
-              </button>
-              <button className="control-btn play-btn" disabled>
-                <Play size={20} fill="white" />
-              </button>
-              <button className="control-btn" disabled>
-                <SkipForward size={18} />
-              </button>
-            </div>
+                <div className="progress-container">
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: "0%" }}></div>
+                  </div>
+                  <div className="progress-time">
+                    <span>0:00</span>
+                    <span>0:00</span>
+                  </div>
+                </div>
 
-            <div className="progress-container">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: "0%" }}></div>
-              </div>
-              <div className="progress-time">
-                <span>0:00</span>
-                <span>0:00</span>
-              </div>
-            </div>
-
-            <div className="volume-control">
-              <Volume2 size={20} style={{ color: "#6b7280" }} />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                defaultValue="70"
-                className="volume-slider"
-              />
-            </div>
+                <div className="volume-control">
+                  <Volume2 size={20} className="volume-icon" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    defaultValue="70"
+                    className="volume-slider"
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
