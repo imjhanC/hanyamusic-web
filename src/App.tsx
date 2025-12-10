@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader, X } from "lucide-react";
+import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader, X, Menu } from "lucide-react";
 import "./index.css";
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
@@ -19,6 +19,7 @@ interface Song {
 export default function App() {
   const [activeTab, setActiveTab] = useState("Home");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -30,10 +31,52 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1.0);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
   
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentSearchValueRef = useRef("");
+
+  // Handle responsive behavior at 770px
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const isMobile = width <= 770;
+      setIsMobileView(isMobile);
+      
+      // Auto-collapse sidebar at 770px
+      if (isMobile) {
+        setIsSidebarCollapsed(true);
+        setIsSidebarOpen(false);
+      } else {
+        // Reset to original state on larger screens
+        setIsSidebarCollapsed(false);
+        setIsSidebarOpen(true);
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const toggleSidebar = () => {
+    if (isMobileView) {
+      setIsSidebarOpen(!isSidebarOpen);
+      // On mobile, when sidebar opens, it's not collapsed (shows text)
+      setIsSidebarCollapsed(!isSidebarOpen);
+    } else {
+      // On desktop, toggle between collapsed (icons only) and expanded (icons + text)
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+  };
 
   const handleSearchWithValue = async (searchValue: string) => {
     if (!searchValue || searchValue.length < 2) {
@@ -87,9 +130,9 @@ export default function App() {
     }
   };
 
-  const handleSearch = async () => {
+  /*const handleSearch = async () => {
     handleSearchWithValue(searchQuery.trim());
-  };
+  };*/
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -417,55 +460,103 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <div className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+      <div className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""} ${isMobileView ? "mobile" : ""} ${isSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
-          {!isSidebarCollapsed && (
+          {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && (
             <h2 className="sidebar-logo">
               <span className="brand-color">Hanya</span>Music
             </h2>
           )}
           <button
             className="sidebar-toggle-btn"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClick={toggleSidebar}
           >
-            {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            {isMobileView ? (
+              isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />
+            ) : (
+              isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />
+            )}
           </button>
         </div>
         <nav className="sidebar-nav">
           <a
             className={`sidebar-link ${activeTab === "Home" ? "active" : ""}`}
-            onClick={() => setActiveTab("Home")}
+            onClick={() => {
+              setActiveTab("Home");
+              if (isMobileView && isSidebarOpen) {
+                setIsSidebarOpen(false);
+                setIsSidebarCollapsed(true);
+              }
+            }}
           >
             <Home size={20} className="sidebar-icon" />
-            {!isSidebarCollapsed && "Home"}
+            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Home"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Trending" ? "active" : ""}`}
-            onClick={() => setActiveTab("Trending")}
+            onClick={() => {
+              setActiveTab("Trending");
+              if (isMobileView && isSidebarOpen) {
+                setIsSidebarOpen(false);
+                setIsSidebarCollapsed(true);
+              }
+            }}
           >
             <TrendingUp size={20} className="sidebar-icon" />
-            {!isSidebarCollapsed && "Trending"}
+            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Trending"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Playlists" ? "active" : ""}`}
-            onClick={() => setActiveTab("Playlists")}
+            onClick={() => {
+              setActiveTab("Playlists");
+              if (isMobileView && isSidebarOpen) {
+                setIsSidebarOpen(false);
+                setIsSidebarCollapsed(true);
+              }
+            }}
           >
             <ListMusic size={20} className="sidebar-icon" />
-            {!isSidebarCollapsed && "Playlists"}
+            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Playlists"}
           </a>
           <a
             className={`sidebar-link ${activeTab === "Your Songs" ? "active" : ""}`}
-            onClick={() => setActiveTab("Your Songs")}
+            onClick={() => {
+              setActiveTab("Your Songs");
+              if (isMobileView && isSidebarOpen) {
+                setIsSidebarOpen(false);
+                setIsSidebarCollapsed(true);
+              }
+            }}
           >
             <Music2 size={20} className="sidebar-icon" />
-            {!isSidebarCollapsed && "Your Songs"}
+            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Your Songs"}
           </a>
         </nav>
       </div>
 
+      {/* Sidebar Overlay for Mobile */}
+      {isMobileView && isSidebarOpen && (
+        <div 
+          className="sidebar-overlay show"
+          onClick={() => {
+            setIsSidebarOpen(false);
+            setIsSidebarCollapsed(true);
+          }}
+        />
+      )}
+
       {/* Top Bar */}
       <div className={`top-bar ${isSidebarCollapsed ? "collapsed" : ""}`}>
         <div className="search-container">
+          {/* Hamburger menu button for mobile */}
+          {isMobileView && (
+            <button
+              className="hamburger-menu-btn"
+              onClick={toggleSidebar}
+            >
+              <Menu size={24} />
+            </button>
+          )}
           <div className="search-wrapper">
             <input
               type="text"
@@ -518,7 +609,7 @@ export default function App() {
       )}
 
       {/* Music Player */}
-      <div className={`music-player ${isSidebarCollapsed ? "collapsed" : ""} ${showMusicPlayer ? "show" : ""}`}>
+      <div className={`music-player ${isSidebarCollapsed ? "collapsed" : ""} ${showMusicPlayer ? "show" : ""} ${isMobileView ? "mobile" : ""}`}>
         {showMusicPlayer && (
           <>
             <button

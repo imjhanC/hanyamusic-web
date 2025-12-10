@@ -33,13 +33,23 @@ body {
   background: #1f1f1f;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.7);
   padding: 25px 20px;
-  z-index: 200;
+  z-index: 300;
   overflow-y: auto;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
 }
 
 .sidebar.collapsed {
   width: 80px;
+}
+
+.sidebar.mobile {
+  width: 240px !important; /* Full width on mobile when open */
+  transform: translateX(-100%);
+}
+
+.sidebar.mobile.open {
+  transform: translateX(0);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.9);
 }
 
 .sidebar-header {
@@ -101,6 +111,12 @@ body {
   padding: 12px 0;
 }
 
+.sidebar.mobile.open .sidebar-link {
+  display: flex;
+  justify-content: flex-start;
+  padding: 12px 16px;
+}
+
 .sidebar-link:hover {
   background: #333;
   color: #ffffff;
@@ -122,6 +138,44 @@ body {
   margin-right: 0;
 }
 
+.sidebar.mobile.open .sidebar-icon {
+  margin-right: 10px;
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 299;
+  backdrop-filter: blur(2px);
+}
+
+/* Hamburger Menu Button */
+.hamburger-menu-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+  display: none; /* Hidden by default */
+}
+
+.hamburger-menu-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
 /* Top Bar Styles */
 .top-bar {
   position: fixed;
@@ -137,7 +191,7 @@ body {
   padding: 0 30px;
   gap: 20px;
   z-index: 100;
-  transition: left 0.3s ease;
+  transition: left 0.3s ease, transform 0.3s ease, width 0.3s ease;
 }
 
 .top-bar.collapsed {
@@ -150,6 +204,7 @@ body {
   justify-content: center;
   max-width: 600px;
   margin: 0 auto;
+  align-items: center;
 }
 
 .search-wrapper {
@@ -226,7 +281,7 @@ body {
   min-height: calc(100vh - 70px - 90px);
   overflow-y: auto;
   background: #121212;
-  transition: margin-left 0.3s ease, width 0.3s ease;
+  transition: margin-left 0.3s ease, width 0.3s ease, transform 0.3s ease;
   padding-bottom: 120px;
 }
 
@@ -462,7 +517,7 @@ body {
   padding: 0 30px;
   gap: 20px;
   z-index: 100;
-  transition: left 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+  transition: left 0.3s ease, transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
   transform: translateY(100%);
   opacity: 0;
   pointer-events: none;
@@ -477,6 +532,10 @@ body {
 
 .music-player.collapsed {
   left: 80px;
+}
+
+.music-player.mobile {
+  left: 0 !important;
 }
 
 .close-player-btn {
@@ -797,51 +856,119 @@ body {
   background: #6b7280;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* 770px Breakpoint - Mobile View */
+@media (max-width: 770px) {
   .sidebar {
-    width: 70px;
+    width: 240px !important; /* Full width on mobile */
+    left: 0 !important;
+    z-index: 300;
+    background: #1f1f1f;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
   }
   
-  .sidebar.collapsed {
-    width: 70px;
+  .sidebar.mobile.open {
+    transform: translateX(0);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.9);
+  }
+  
+  /* Move sidebar toggle button to the right on mobile */
+  .sidebar.mobile.open .sidebar-header {
+    justify-content: space-between;
+  }
+  
+  .sidebar.mobile.open .sidebar-toggle-btn {
+    position: absolute;
+    right: 15px;
+    top: 25px;
+    background: #333;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 301;
+  }
+  
+  .sidebar.mobile.open .sidebar-toggle-btn:hover {
+    background: #444;
+  }
+  
+  /* When sidebar is open on mobile, push all content to the right */
+  .sidebar.mobile.open ~ .top-bar,
+  .sidebar.mobile.open ~ .main-content,
+  .sidebar.mobile.open ~ .music-player {
+    transform: translateX(240px);
+    width: calc(100% - 240px);
+  }
+  
+  /* Sidebar overlay */
+  .sidebar-overlay.show {
+    display: block;
+  }
+  
+  /* Show hamburger menu on mobile */
+  .hamburger-menu-btn {
+    display: flex;
   }
   
   .sidebar-logo {
-    display: none;
+    display: block;
+    font-size: 20px;
+  }
+  
+  .sidebar-toggle-btn {
+    display: flex !important;
   }
   
   .sidebar-link {
     display: flex;
-    justify-content: center;
-    padding: 12px 0;
+    justify-content: flex-start;
+    padding: 12px 16px;
   }
   
   .sidebar-icon {
-    margin-right: 0;
+    margin-right: 10px;
+  }
+  
+  /* Adjust search container to accommodate hamburger button */
+  .search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .search-wrapper {
+    flex: 1;
   }
   
   .top-bar {
-    left: 70px;
+    left: 0 !important;
     padding: 0 15px;
     height: 60px;
+    z-index: 250;
+    transition: transform 0.3s ease, width 0.3s ease;
   }
   
   .top-bar.collapsed {
-    left: 70px;
+    left: 0 !important;
   }
   
   .main-content {
-    margin-left: 70px;
+    margin-left: 0 !important;
     margin-top: 60px;
-    width: calc(100% - 70px);
+    width: 100% !important;
     padding: 20px;
     padding-bottom: 160px;
+    z-index: 1;
+    transition: transform 0.3s ease, width 0.3s ease;
   }
   
   .main-content.collapsed {
-    margin-left: 70px;
-    width: calc(100% - 70px);
+    margin-left: 0 !important;
+    width: 100% !important;
     padding-bottom: 160px;
   }
   
@@ -854,25 +981,31 @@ body {
   }
   
   .music-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 16px;
   }
   
+  /* Music Player adjustments for 770px */
   .music-player {
-    left: 0;
-    height: 140px;
+    left: 0 !important;
+    right: 0;
+    height: 120px;
     padding: 12px 15px;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+    z-index: 200;
+    bottom: 0;
+    transition: transform 0.3s ease, width 0.3s ease;
   }
   
   .music-player.show {
     transform: translateY(0);
   }
   
-  .music-player.collapsed {
-    left: 0;
+  .music-player.collapsed,
+  .music-player.mobile {
+    left: 0 !important;
   }
   
   .player-song-info {
@@ -902,11 +1035,19 @@ body {
     width: 150px;
   }
   
+  /* Adjust mini player position */
   .mini-player-trigger {
-    bottom: 150px;
+    bottom: 130px;
     right: 15px;
     width: 50px;
     height: 50px;
+    z-index: 210;
+    transition: transform 0.3s ease;
+  }
+  
+  /* Move mini player when sidebar is open */
+  .sidebar.mobile.open ~ .mini-player-trigger {
+    transform: translateX(240px);
   }
   
   .search-loading-container {
@@ -940,42 +1081,46 @@ body {
   }
 }
 
+/* Existing smaller breakpoints (max-width: 480px) */
 @media (max-width: 480px) {
   .sidebar {
-    width: 60px;
+    width: 200px !important;
   }
   
-  .sidebar.collapsed {
-    width: 60px;
+  /* Move sidebar toggle button to the right on mobile for 480px */
+  .sidebar.mobile.open .sidebar-toggle-btn {
+    right: 10px;
+    top: 27px;
+    width: 30px;
+    height: 30px;
   }
   
-  /* Hide sidebar text on very small screens */
-  .sidebar-logo {
-    display: none !important;
+  .sidebar.mobile.open ~ .top-bar,
+  .sidebar.mobile.open ~ .main-content,
+  .sidebar.mobile.open ~ .music-player {
+    transform: translateX(200px);
+    width: calc(100% - 200px);
   }
   
-  .sidebar-link {
-    display: flex !important;
-    justify-content: center !important;
-    padding: 12px 0 !important;
+  .sidebar.mobile.open ~ .mini-player-trigger {
+    transform: translateX(200px);
   }
   
-  .sidebar-icon {
-    margin-right: 0 !important;
+  .sidebar.mobile.open {
+    width: 200px !important;
   }
   
-  /* Hide toggle button on very small screens since sidebar is always collapsed */
   .sidebar-toggle-btn {
-    display: none;
+    display: flex !important;
   }
   
   .top-bar {
-    left: 60px;
+    left: 0 !important;
     padding: 0 10px;
   }
   
   .top-bar.collapsed {
-    left: 60px;
+    left: 0 !important;
   }
   
   .search-input {
@@ -984,19 +1129,18 @@ body {
   }
   
   .main-content {
-    margin-left: 60px;
-    width: calc(100% - 60px);
+    margin-left: 0 !important;
+    width: 100% !important;
     padding: 15px;
     padding-bottom: 170px;
   }
   
   .main-content.collapsed {
-    margin-left: 60px;
-    width: calc(100% - 60px);
+    margin-left: 0 !important;
+    width: 100% !important;
     padding-bottom: 170px;
   }
   
-  /* Make main content full width when music player is shown */
   .main-heading {
     font-size: 20px;
   }
@@ -1026,10 +1170,11 @@ body {
     height: 150px;
     padding: 10px 12px;
     gap: 8px;
-    left: 0 !important; /* Ensure music player spans full width on mobile */
+    left: 0 !important;
   }
   
-  .music-player.collapsed {
+  .music-player.collapsed,
+  .music-player.mobile {
     left: 0 !important;
   }
   
