@@ -800,35 +800,49 @@ body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .sidebar {
-    width: 80px;
+    width: 70px;
   }
   
   .sidebar.collapsed {
-    width: 60px;
+    width: 70px;
+  }
+  
+  .sidebar-logo {
+    display: none;
+  }
+  
+  .sidebar-link {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+  }
+  
+  .sidebar-icon {
+    margin-right: 0;
   }
   
   .top-bar {
-    left: 80px;
+    left: 70px;
     padding: 0 15px;
     height: 60px;
   }
   
   .top-bar.collapsed {
-    left: 60px;
+    left: 70px;
   }
   
   .main-content {
-    margin-left: 80px;
+    margin-left: 70px;
     margin-top: 60px;
-    width: calc(100% - 80px);
+    width: calc(100% - 70px);
     padding: 20px;
-    padding-bottom: 140px;
+    padding-bottom: 160px;
   }
   
   .main-content.collapsed {
-    margin-left: 60px;
-    width: calc(100% - 60px);
-    padding-bottom: 140px;
+    margin-left: 70px;
+    width: calc(100% - 70px);
+    padding-bottom: 160px;
   }
   
   .main-heading {
@@ -846,11 +860,11 @@ body {
   
   .music-player {
     left: 0;
-    height: 120px;
-    padding: 15px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
+    height: 140px;
+    padding: 12px 15px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
   }
   
   .music-player.show {
@@ -863,23 +877,33 @@ body {
   
   .player-song-info {
     min-width: auto;
-  }
-  
-  .progress-container {
+    width: 100%;
     order: 1;
   }
   
   .player-controls {
     order: 2;
+    width: 100%;
     justify-content: center;
   }
   
+  .progress-container {
+    order: 3;
+    width: 100%;
+  }
+  
   .volume-control {
-    display: none;
+    order: 4;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .volume-slider {
+    width: 150px;
   }
   
   .mini-player-trigger {
-    bottom: 80px;
+    bottom: 150px;
     right: 15px;
     width: 50px;
     height: 50px;
@@ -921,8 +945,37 @@ body {
     width: 60px;
   }
   
+  .sidebar.collapsed {
+    width: 60px;
+  }
+  
+  /* Hide sidebar text on very small screens */
+  .sidebar-logo {
+    display: none !important;
+  }
+  
+  .sidebar-link {
+    display: flex !important;
+    justify-content: center !important;
+    padding: 12px 0 !important;
+  }
+  
+  .sidebar-icon {
+    margin-right: 0 !important;
+  }
+  
+  /* Hide toggle button on very small screens since sidebar is always collapsed */
+  .sidebar-toggle-btn {
+    display: none;
+  }
+  
   .top-bar {
+    left: 60px;
     padding: 0 10px;
+  }
+  
+  .top-bar.collapsed {
+    left: 60px;
   }
   
   .search-input {
@@ -931,12 +984,25 @@ body {
   }
   
   .main-content {
+    margin-left: 60px;
+    width: calc(100% - 60px);
     padding: 15px;
-    padding-bottom: 150px;
+    padding-bottom: 170px;
   }
   
   .main-content.collapsed {
-    padding-bottom: 150px;
+    margin-left: 60px;
+    width: calc(100% - 60px);
+    padding-bottom: 170px;
+  }
+  
+  /* Make main content full width when music player is shown */
+  .main-heading {
+    font-size: 20px;
+  }
+  
+  .main-subtitle {
+    font-size: 13px;
   }
   
   .music-grid {
@@ -956,11 +1022,20 @@ body {
     font-size: 12px;
   }
   
-  .player-song-info {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+  .music-player {
+    height: 150px;
+    padding: 10px 12px;
     gap: 8px;
+    left: 0 !important; /* Ensure music player spans full width on mobile */
+  }
+  
+  .music-player.collapsed {
+    left: 0 !important;
+  }
+  
+  .player-song-info {
+    width: 100%;
+    gap: 10px;
   }
   
   .player-thumbnail {
@@ -976,6 +1051,11 @@ body {
     font-size: 11px;
   }
   
+  .player-controls {
+    width: 100%;
+    gap: 12px;
+  }
+  
   .control-btn {
     width: 36px;
     height: 36px;
@@ -984,6 +1064,22 @@ body {
   .play-btn {
     width: 44px;
     height: 44px;
+  }
+  
+  .progress-container {
+    width: 100%;
+  }
+  
+  .volume-control {
+    width: 100%;
+  }
+  
+  .volume-slider {
+    width: 120px;
+  }
+  
+  .mini-player-trigger {
+    bottom: 160px;
   }
   
   .search-loading-container {

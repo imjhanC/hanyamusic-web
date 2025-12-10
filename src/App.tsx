@@ -33,17 +33,20 @@ export default function App() {
   
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const currentSearchValueRef = useRef("");
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+  const handleSearchWithValue = async (searchValue: string) => {
+    if (!searchValue || searchValue.length < 2) {
       setSearchResults([]);
       setActiveTab("Home");
       return;
     }
 
+    console.log('Searching with query:', searchValue);
+
     setIsSearching(true);
     try {
-      const url = `${API_BASE_URL}/search?q=${encodeURIComponent(searchQuery.trim())}`;
+      const url = `${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}`;
       console.log('Searching:', url);
       
       const response = await fetch(url, {
@@ -84,9 +87,16 @@ export default function App() {
     }
   };
 
+  const handleSearch = async () => {
+    handleSearchWithValue(searchQuery.trim());
+  };
+
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
+    currentSearchValueRef.current = value; // Save the current value
+
+    console.log('User typed in search:', value);
 
     if (searchDebounceTimer.current) {
       clearTimeout(searchDebounceTimer.current);
@@ -105,14 +115,19 @@ export default function App() {
     // Wait 3 seconds after user stops typing before searching
     searchDebounceTimer.current = setTimeout(() => {
       setIsDebouncing(false);
-      if (value.trim().length >= 2) {
-        handleSearch();
+      // Use the ref value instead of the closure-captured value
+      const currentValue = currentSearchValueRef.current.trim();
+      if (currentValue.length >= 2) {
+        // Pass the current value from ref to handleSearch
+        handleSearchWithValue(currentValue);
       }
     }, 3000);
   };
 
   const handleClearSearch = () => {
+    console.log('User cleared search');
     setSearchQuery("");
+    currentSearchValueRef.current = "";
     setSearchResults([]);
     setActiveTab("Home");
     setIsDebouncing(false);
@@ -125,12 +140,13 @@ export default function App() {
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      console.log('User pressed Enter to search with:', searchQuery);
       if (searchDebounceTimer.current) {
         clearTimeout(searchDebounceTimer.current);
         searchDebounceTimer.current = null;
       }
       setIsDebouncing(false);
-      handleSearch();
+      handleSearchWithValue(searchQuery.trim());
     }
   };
 
@@ -285,9 +301,12 @@ export default function App() {
             <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
             <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
             <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.5s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
             <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
             <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
             <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
           </div>
           <h2 className="loading-text">Searching for "{searchQuery}"</h2>
           <p className="loading-subtext">Finding the best music for you...</p>
