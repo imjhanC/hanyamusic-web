@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Home, TrendingUp, ListMusic, Music2, Play, SkipBack, SkipForward, Volume2, User, ChevronLeft, ChevronRight, Loader, X, Menu } from "lucide-react";
-import "./index.css";
+import "./css/main.css";
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
