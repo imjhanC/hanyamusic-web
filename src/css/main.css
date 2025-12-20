@@ -88,6 +88,14 @@ body {
   color: #e5e7eb;
 }
 
+/* Icon-only logo for collapsed sidebar */
+.sidebar-header .logo-icon {
+  display: none;
+  font-size: 24px;
+  font-weight: 700;
+  color: #22c55e;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -102,7 +110,8 @@ body {
   font-weight: 500;
   color: #d1d5db;
   text-decoration: none;
-  display: block;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar.collapsed .sidebar-link {
@@ -132,6 +141,7 @@ body {
 .sidebar-icon {
   display: inline;
   margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .sidebar-icon {
@@ -140,6 +150,12 @@ body {
 
 .sidebar.mobile.open .sidebar-icon {
   margin-right: 10px;
+}
+
+.sidebar-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Sidebar Overlay */
@@ -515,7 +531,7 @@ body {
   display: flex;
   align-items: center;
   padding: 0 30px;
-  gap: 20px;
+  gap: 15px;
   z-index: 100;
   transition: left 0.3s ease, transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
   transform: translateY(100%);
@@ -609,7 +625,7 @@ body {
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .control-btn {
@@ -636,6 +652,16 @@ body {
   cursor: not-allowed;
 }
 
+.control-btn.shuffle-btn.active,
+.control-btn.repeat-btn.active {
+  color: #22c55e;
+}
+
+.control-btn.shuffle-btn.active:hover,
+.control-btn.repeat-btn.active:hover {
+  background: rgba(34, 197, 94, 0.1);
+}
+
 .play-btn {
   width: 50px;
   height: 50px;
@@ -648,11 +674,14 @@ body {
   box-shadow: 0 4px 12px rgba(75, 85, 99, 0.5);
 }
 
-.progress-container {
+/* Compact Progress Container */
+.progress-container.compact {
   flex: 1;
+  max-width: 9250px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .progress-bar {
@@ -675,8 +704,51 @@ body {
 .progress-time {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11px;
   color: #9ca3af;
+}
+
+/* Middle Controls */
+.middle-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 0 15px;
+}
+
+.middle-control-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: 36px;
+  height: 36px;
+}
+
+.middle-control-btn:hover:not(:disabled) {
+  background: #333;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.middle-control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.middle-control-btn.active {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.middle-control-btn.active:hover {
+  background: rgba(34, 197, 94, 0.2);
 }
 
 .volume-control {
@@ -856,20 +928,238 @@ body {
   background: #6b7280;
 }
 
-/* 770px Breakpoint - Mobile View */
+/* Lyrics Panel */
+.lyrics-panel {
+  position: fixed;
+  bottom: 90px;
+  left: 0;
+  right: 0;
+  background: rgba(31, 31, 31, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px solid #333;
+  z-index: 99;
+  transition: transform 0.3s ease;
+  transform: translateY(100%);
+}
+
+.lyrics-panel.show {
+  transform: translateY(0);
+}
+
+.lyrics-content {
+  text-align: center;
+  color: #e5e7eb;
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+/* 1430px Breakpoint - Collapsed Sidebar for Medium Screens */
+@media (max-width: 1430px) {
+  /* Collapsed sidebar styles */
+  .sidebar {
+    width: 80px !important; /* Collapsed width */
+  }
+  
+  .sidebar.collapsed {
+    width: 80px !important;
+  }
+  
+  /* Sidebar header - center logo/icon */
+  .sidebar-header {
+    justify-content: center;
+    padding: 0;
+  }
+  
+  .sidebar-logo {
+    display: none; /* Hide text logo */
+  }
+  
+  /* Remove the ♪ icon and just show blank space */
+  .sidebar-header::before {
+    content: ""; /* Empty content instead of ♪ */
+  }
+  
+  .sidebar-toggle-btn {
+    display: none; /* Hide toggle button in collapsed state */
+  }
+  
+  /* Sidebar links - icon only */
+  .sidebar-link {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+    text-align: center;
+    position: relative;
+  }
+  
+  .sidebar-icon {
+    margin-right: 0;
+  }
+  
+  /* Hide ALL text content inside sidebar links */
+  .sidebar-link span:not(.sidebar-icon) {
+    display: none !important;
+  }
+  
+  /* Hide any direct text nodes */
+  .sidebar-link {
+    font-size: 0; /* Hide any text content */
+  }
+  
+  .sidebar-link .sidebar-icon {
+    font-size: 16px; /* Restore icon size */
+  }
+  
+  .sidebar-text {
+    display: none; /* Hide text */
+  }
+  
+  /* Adjust top bar position */
+  .top-bar {
+    left: 80px;
+  }
+  
+  .top-bar.collapsed {
+    left: 80px;
+  }
+  
+  /* Adjust main content position */
+  .main-content {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+  
+  .main-content.collapsed {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+  
+  /* Music Player adjustments for screens below 1430px */
+  .music-player {
+    left: 80px !important;
+    right: 0;
+    height: auto;
+    min-height: 110px;
+    padding: 10px 30px 12px 30px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+    z-index: 200;
+    bottom: 0;
+    transition: transform 0.3s ease, width 0.3s ease;
+    overflow: visible;
+  }
+  
+  .music-player.collapsed {
+    left: 80px !important;
+  }
+  
+  .player-song-info {
+    min-width: 250px;
+    width: auto;
+    order: 1;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  
+  .player-controls {
+    order: 2;
+    width: auto;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+    align-self: center;
+    margin: 0 auto;
+    flex: 1;
+  }
+  
+  /* Put middle-controls and volume-control to the right */
+  .middle-controls {
+    order: 3;
+    width: auto;
+    justify-content: flex-end;
+    margin: 0;
+    gap: 10px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  
+  .volume-control {
+    order: 4;
+    width: auto;
+    flex-shrink: 0;
+    margin-left: 10px;
+    gap: 10px;
+    align-self: center;
+  }
+  
+  .volume-slider {
+    width: 100px;
+  }
+  
+  /* Progress bar below - full width */
+  .progress-container.compact {
+    order: 5;
+    width: calc(100% - 60px);
+    max-width: 100%;
+    flex-basis: 100%;
+    flex-shrink: 0;
+    margin: 8px 0 0 0;
+  }
+  
+  .progress-container.compact .progress-time {
+    font-size: 11px;
+  }
+  
+  /* Adjust mini player position */
+  .mini-player-trigger {
+    bottom: 110px;
+    right: 15px;
+    width: 50px;
+    height: 50px;
+    z-index: 210;
+  }
+}
+
+/* 770px Breakpoint - Mobile View with Hamburger Menu */
 @media (max-width: 770px) {
+  /* Reset sidebar for mobile behavior */
   .sidebar {
     width: 240px !important; /* Full width on mobile */
-    left: 0 !important;
-    z-index: 300;
-    background: #1f1f1f;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
   }
   
   .sidebar.mobile.open {
     transform: translateX(0);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.9);
+  }
+  
+  .sidebar-logo {
+    display: block !important; /* Show logo text when sidebar is open on mobile */
+  }
+  
+  .sidebar-header::before {
+    display: none !important; /* Remove the icon */
+  }
+  
+  .sidebar-toggle-btn {
+    display: flex !important; /* Show toggle button on mobile */
+  }
+  
+  .sidebar-link {
+    display: flex;
+    justify-content: flex-start;
+    padding: 12px 16px;
+  }
+  
+  .sidebar-icon {
+    margin-right: 10px;
+  }
+  
+  .sidebar-text {
+    display: inline !important; /* Show text when sidebar is open */
   }
   
   /* Move sidebar toggle button to the right on mobile */
@@ -896,6 +1186,18 @@ body {
     background: #444;
   }
   
+  .top-bar {
+    left: 0 !important;
+    padding: 0 15px;
+    height: 60px;
+    z-index: 250;
+    transition: transform 0.3s ease, width 0.3s ease;
+  }
+  
+  .top-bar.collapsed {
+    left: 0 !important;
+  }
+  
   /* When sidebar is open on mobile, push all content to the right */
   .sidebar.mobile.open ~ .top-bar,
   .sidebar.mobile.open ~ .main-content,
@@ -914,23 +1216,8 @@ body {
     display: flex;
   }
   
-  .sidebar-logo {
-    display: block;
-    font-size: 20px;
-  }
-  
   .sidebar-toggle-btn {
     display: flex !important;
-  }
-  
-  .sidebar-link {
-    display: flex;
-    justify-content: flex-start;
-    padding: 12px 16px;
-  }
-  
-  .sidebar-icon {
-    margin-right: 10px;
   }
   
   /* Adjust search container to accommodate hamburger button */
@@ -942,18 +1229,6 @@ body {
   
   .search-wrapper {
     flex: 1;
-  }
-  
-  .top-bar {
-    left: 0 !important;
-    padding: 0 15px;
-    height: 60px;
-    z-index: 250;
-    transition: transform 0.3s ease, width 0.3s ease;
-  }
-  
-  .top-bar.collapsed {
-    left: 0 !important;
   }
   
   .main-content {
@@ -989,14 +1264,17 @@ body {
   .music-player {
     left: 0 !important;
     right: 0;
-    height: 120px;
-    padding: 12px 15px;
+    height: auto;
+    min-height: 140px;
+    max-height: 180px;
+    padding: 10px 15px 12px 15px;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     z-index: 200;
     bottom: 0;
     transition: transform 0.3s ease, width 0.3s ease;
+    overflow-y: auto;
   }
   
   .music-player.show {
@@ -1006,43 +1284,6 @@ body {
   .music-player.collapsed,
   .music-player.mobile {
     left: 0 !important;
-  }
-  
-  .player-song-info {
-    min-width: auto;
-    width: 100%;
-    order: 1;
-  }
-  
-  .player-controls {
-    order: 2;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .progress-container {
-    order: 3;
-    width: 100%;
-  }
-  
-  .volume-control {
-    order: 4;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .volume-slider {
-    width: 150px;
-  }
-  
-  /* Adjust mini player position */
-  .mini-player-trigger {
-    bottom: 130px;
-    right: 15px;
-    width: 50px;
-    height: 50px;
-    z-index: 210;
-    transition: transform 0.3s ease;
   }
   
   /* Move mini player when sidebar is open */
@@ -1078,6 +1319,32 @@ body {
   
   .search-input {
     padding: 10px 60px 10px 35px;
+  }
+  
+  .music-player .player-controls {
+    gap: 10px;
+  }
+  
+  .control-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .play-btn {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .middle-control-btn {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+  
+  /* Lyrics panel adjustments */
+  .music-player.mobile .lyrics-panel {
+    bottom: 160px;
+    max-height: 250px;
   }
 }
 
@@ -1167,10 +1434,13 @@ body {
   }
   
   .music-player {
-    height: 150px;
-    padding: 10px 12px;
-    gap: 8px;
+    height: auto;
+    min-height: 150px;
+    max-height: 200px;
+    padding: 10px 12px 12px 12px;
+    gap: 6px;
     left: 0 !important;
+    overflow-y: auto;
   }
   
   .music-player.collapsed,
@@ -1181,6 +1451,7 @@ body {
   .player-song-info {
     width: 100%;
     gap: 10px;
+    flex-shrink: 0;
   }
   
   .player-thumbnail {
@@ -1198,29 +1469,51 @@ body {
   
   .player-controls {
     width: 100%;
-    gap: 12px;
+    gap: 8px;
+    flex-shrink: 0;
   }
   
   .control-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
   
   .play-btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
   
-  .progress-container {
+  .progress-container.compact {
     width: 100%;
+    flex-shrink: 0;
+    margin: 0;
+  }
+  
+  .progress-container.compact .progress-time {
+    font-size: 9px;
+  }
+  
+  .middle-controls {
+    width: auto;
+    gap: 10px;
+    flex-shrink: 0;
+    margin: 0;
+  }
+  
+  .middle-control-btn {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
   }
   
   .volume-control {
-    width: 100%;
+    width: auto;
+    flex-shrink: 0;
+    margin-left: auto;
   }
   
   .volume-slider {
-    width: 120px;
+    width: 90px;
   }
   
   .mini-player-trigger {
@@ -1264,5 +1557,17 @@ body {
   
   .clear-search-btn {
     right: 30px;
+  }
+  
+  /* Lyrics panel adjustments for mobile */
+  .music-player.mobile .lyrics-panel {
+    bottom: 150px;
+    max-height: 200px;
+    padding: 15px;
+  }
+  
+  .lyrics-content {
+    font-size: 14px;
+    line-height: 1.6;
   }
 }

@@ -25,6 +25,9 @@ export default function App() {
   const [volume, setVolume] = useState(1.0);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+  const [showLyrics, setShowLyrics] = useState(false);
   
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -323,6 +326,44 @@ export default function App() {
     setCurrentTime(newTime);
   };
 
+  const handleToggleShuffle = () => {
+  setIsShuffle(!isShuffle);
+};
+
+const handleToggleRepeat = () => {
+  // Cycle through repeat modes: off -> one -> all -> off
+  if (repeatMode === 'off') {
+    setRepeatMode('one');
+  } else if (repeatMode === 'one') {
+    setRepeatMode('all');
+  } else {
+    setRepeatMode('off');
+  }
+};
+
+const handleToggleLyrics = () => {
+  setShowLyrics(!showLyrics);
+  // You can implement lyrics fetching logic here
+  if (!showLyrics && currentSong) {
+    // Fetch lyrics for current song
+    console.log('Fetching lyrics for:', currentSong.title);
+  }
+};
+
+const handleToggleMenu = () => {
+  // Toggle sidebar or player menu
+  if (isMobileView) {
+    toggleSidebar();
+  }
+  // Add additional menu logic if needed
+};
+
+const handleToggleMic = () => {
+  // Implement voice control or search functionality
+  console.log('Mic button clicked - implement voice search');
+};
+
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && currentSong) {
@@ -407,19 +448,20 @@ export default function App() {
         currentTime={currentTime}
         duration={duration}
         volume={volume}
+        isShuffle={isShuffle}
+        repeatMode={repeatMode}
+        showLyrics={showLyrics}
         onClose={handleClosePlayer}
         onTogglePlay={togglePlayPause}
-        onTimeUpdate={setCurrentTime}
-        onLoadedMetadata={setDuration}
         onVolumeChange={handleVolumeChange}
         onProgressClick={handleProgressClick}
         onSkipBack={handleSkipBack}
         onSkipForward={handleSkipForward}
-        onError={() => {
-          console.error('Audio error');
-          alert('Failed to play audio. Please try another song.');
-          handleClosePlayer();
-        }}
+        onToggleShuffle={handleToggleShuffle}
+        onToggleRepeat={handleToggleRepeat}
+        onToggleLyrics={handleToggleLyrics}
+        onToggleMenu={handleToggleMenu}
+        onToggleMic={handleToggleMic}
       />
 
       {/* Audio Element - Keep it in App.tsx for centralized control */}

@@ -1,4 +1,7 @@
-import { X, SkipBack, SkipForward, Play, Volume2, Loader } from "lucide-react";
+import { 
+  X, SkipBack, SkipForward, Play, Volume2, Loader, 
+  Shuffle, Repeat, Repeat1, Mic, Menu, Music 
+} from "lucide-react";
 import type { Song } from "../types";
 
 interface MusicPlayerProps {
@@ -11,15 +14,20 @@ interface MusicPlayerProps {
   currentTime: number;
   duration: number;
   volume: number;
+  isShuffle: boolean;
+  repeatMode: 'off' | 'one' | 'all'; // 'off', 'one', 'all'
+  showLyrics: boolean;
   onClose: () => void;
   onTogglePlay: () => void;
-  onTimeUpdate: (time: number) => void;
-  onLoadedMetadata: (duration: number) => void;
   onVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   onSkipBack: () => void;
   onSkipForward: () => void;
-  onError: () => void;
+  onToggleShuffle: () => void;
+  onToggleRepeat: () => void;
+  onToggleLyrics: () => void;
+  onToggleMenu?: () => void; // Optional for mobile hamburger
+  onToggleMic?: () => void; // Optional for mic functionality
 }
 
 export const MusicPlayer = ({
@@ -32,15 +40,20 @@ export const MusicPlayer = ({
   currentTime,
   duration,
   volume,
+  isShuffle,
+  repeatMode,
+  showLyrics,
   onClose,
   onTogglePlay,
-  //onTimeUpdate,
-  //onLoadedMetadata,
   onVolumeChange,
   onProgressClick,
   onSkipBack,
   onSkipForward,
-  //onError
+  onToggleShuffle,
+  onToggleRepeat,
+  onToggleLyrics,
+  onToggleMenu,
+  onToggleMic
 }: MusicPlayerProps) => {
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
@@ -87,9 +100,19 @@ export const MusicPlayer = ({
               </div>
 
               <div className="player-controls">
+                {/* Shuffle Button - Left of main controls */}
+                <button 
+                  className={`control-btn shuffle-btn ${isShuffle ? 'active' : ''}`}
+                  onClick={onToggleShuffle}
+                  title={isShuffle ? "Shuffle enabled" : "Enable shuffle"}
+                >
+                  <Shuffle size={18} />
+                </button>
+
                 <button className="control-btn" onClick={onSkipBack}>
                   <SkipBack size={18} />
                 </button>
+                
                 <button className="control-btn play-btn" onClick={onTogglePlay}>
                   {isPlaying ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -100,12 +123,23 @@ export const MusicPlayer = ({
                     <Play size={20} fill="white" />
                   )}
                 </button>
+                
                 <button className="control-btn" onClick={onSkipForward}>
                   <SkipForward size={18} />
                 </button>
+
+                {/* Repeat Button - Right of main controls */}
+                <button 
+                  className={`control-btn repeat-btn ${repeatMode !== 'off' ? 'active' : ''}`}
+                  onClick={onToggleRepeat}
+                  title={repeatMode === 'one' ? "Repeat one" : repeatMode === 'all' ? "Repeat all" : "Repeat off"}
+                >
+                  {repeatMode === 'one' ? <Repeat1 size={18} /> : <Repeat size={18} />}
+                </button>
               </div>
 
-              <div className="progress-container">
+              {/* Compact Progress Container */}
+              <div className="progress-container compact">
                 <div className="progress-bar" onClick={onProgressClick}>
                   <div 
                     className="progress-fill" 
@@ -118,6 +152,33 @@ export const MusicPlayer = ({
                 </div>
               </div>
 
+              {/* Middle Control Buttons */}
+              <div className="middle-controls">
+                {/* Hamburger Icon (optional for mobile) */}
+                {onToggleMenu && (
+                  <button className="middle-control-btn" onClick={onToggleMenu}>
+                    <Menu size={18} />
+                  </button>
+                )}
+                
+                {/* Mic Icon */}
+                {onToggleMic && (
+                  <button className="middle-control-btn" onClick={onToggleMic}>
+                    <Mic size={18} />
+                  </button>
+                )}
+                
+                {/* Lyrics Icon */}
+                <button 
+                  className={`middle-control-btn lyrics-btn ${showLyrics ? 'active' : ''}`}
+                  onClick={onToggleLyrics}
+                  title={showLyrics ? "Hide lyrics" : "Show lyrics"}
+                >
+                  <Music size={18} />
+                </button>
+              </div>
+
+              {/* Volume Control */}
               <div className="volume-control">
                 <Volume2 size={20} className="volume-icon" />
                 <input
@@ -147,6 +208,9 @@ export const MusicPlayer = ({
 
               <div className="player-controls">
                 <button className="control-btn" disabled>
+                  <Shuffle size={18} />
+                </button>
+                <button className="control-btn" disabled>
                   <SkipBack size={18} />
                 </button>
                 <button className="control-btn play-btn" disabled>
@@ -155,9 +219,12 @@ export const MusicPlayer = ({
                 <button className="control-btn" disabled>
                   <SkipForward size={18} />
                 </button>
+                <button className="control-btn" disabled>
+                  <Repeat size={18} />
+                </button>
               </div>
 
-              <div className="progress-container">
+              <div className="progress-container compact">
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: "0%" }}></div>
                 </div>
@@ -165,6 +232,22 @@ export const MusicPlayer = ({
                   <span>0:00</span>
                   <span>0:00</span>
                 </div>
+              </div>
+
+              <div className="middle-controls">
+                {onToggleMenu && (
+                  <button className="middle-control-btn" disabled>
+                    <Menu size={18} />
+                  </button>
+                )}
+                {onToggleMic && (
+                  <button className="middle-control-btn" disabled>
+                    <Mic size={18} />
+                  </button>
+                )}
+                <button className="middle-control-btn" disabled>
+                  <Music size={18} />
+                </button>
               </div>
 
               <div className="volume-control">
