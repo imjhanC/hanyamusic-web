@@ -179,12 +179,11 @@ body {
   cursor: pointer;
   padding: 8px;
   border-radius: 4px;
-  display: flex;
+  display: none; /* Hidden by default on desktop */
   align-items: center;
   justify-content: center;
   margin-right: 12px;
   transition: all 0.2s ease;
-  display: none; /* Hidden by default */
 }
 
 .hamburger-menu-btn:hover {
@@ -1126,6 +1125,11 @@ body {
 
 /* 770px Breakpoint - Mobile View with Hamburger Menu */
 @media (max-width: 770px) {
+  /* Show hamburger button on mobile */
+  .hamburger-menu-btn {
+    display: flex !important;
+  }
+  
   /* Reset sidebar for mobile behavior */
   .sidebar {
     width: 240px !important; /* Full width on mobile */
@@ -1133,6 +1137,7 @@ body {
   }
   
   .sidebar.mobile.open {
+    width: 250px !important;
     transform: translateX(0);
   }
   
@@ -1152,10 +1157,16 @@ body {
     display: flex;
     justify-content: flex-start;
     padding: 12px 16px;
+    font-size: inherit !important; /* Restore font size */
   }
   
   .sidebar-icon {
     margin-right: 10px;
+  }
+  
+  /* Show ALL text content in sidebar links on mobile */
+  .sidebar-link span:not(.sidebar-icon) {
+    display: inline !important;
   }
   
   .sidebar-text {
@@ -1209,15 +1220,6 @@ body {
   /* Sidebar overlay */
   .sidebar-overlay.show {
     display: block;
-  }
-  
-  /* Show hamburger menu on mobile */
-  .hamburger-menu-btn {
-    display: flex;
-  }
-  
-  .sidebar-toggle-btn {
-    display: flex !important;
   }
   
   /* Adjust search container to accommodate hamburger button */
@@ -1350,6 +1352,11 @@ body {
 
 /* Existing smaller breakpoints (max-width: 480px) */
 @media (max-width: 480px) {
+  /* Show hamburger button */
+  .hamburger-menu-btn {
+    display: flex !important;
+  }
+  
   .sidebar {
     width: 200px !important;
   }
@@ -1374,7 +1381,7 @@ body {
   }
   
   .sidebar.mobile.open {
-    width: 200px !important;
+    width: 250px !important;
   }
   
   .sidebar-toggle-btn {
