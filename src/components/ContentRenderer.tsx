@@ -112,6 +112,34 @@ export const ContentRenderer = ({
         </div>
       </div>
     );
+  } else if (activeTab === "Trending" ){
+    return (
+      <div>
+        <h1 className="main-heading">
+          Welcome to <span className="brand-color">Hanya</span>Music
+        </h1>
+        <p className="main-subtitle">
+          Search for your favorite music using the search bar above
+        </p>
+
+        <div className="music-grid">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+            <div key={item} className="music-card slide-up">
+              <div
+                className="music-card-image"
+                style={{
+                  background: `linear-gradient(135deg, 
+                    ${getRandomColor()} 0%, 
+                    ${getRandomColor()} 100%)`
+                }}
+              ></div>
+              <h3 className="music-card-title">Trending Song {item}</h3>
+              <p className="music-card-artist">Popular Artist</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

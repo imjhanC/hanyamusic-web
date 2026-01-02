@@ -6,6 +6,7 @@ import { MusicPlayer } from "./components/MusicPlayer";
 import { MiniPlayerTrigger } from "./components/MiniPlayerTrigger";
 import type { Song } from "./types";
 import "./css/main.css";
+import "./css/responsive.css";
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
@@ -187,7 +188,7 @@ export default function App() {
         // Pass the current value from ref to handleSearch
         handleSearchWithValue(currentValue);
       }
-    }, 3000);
+    }, 2000);
   };
 
   const handleClearSearch = () => {
