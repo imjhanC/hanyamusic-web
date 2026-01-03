@@ -1,6 +1,9 @@
-import { Loader } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader, ChevronRight, ArrowLeft } from "lucide-react";
 import { MusicCard } from "./MusicCard";
-import type { Song } from "../types";
+import { ArtistCard } from "./ArtistCard";
+import { SongPreviewCard } from "./SongPreviewCard";
+import type { Song, TopArtist, TopSong } from "../types";
 
 interface ContentRendererProps {
   activeTab: string;
@@ -9,6 +12,13 @@ interface ContentRendererProps {
   isDebouncing: boolean;
   isSearching: boolean;
   onPlaySong: (song: Song) => void;
+  topArtists: TopArtist[];
+  topGlobalSongs: TopSong[];
+  topCountrySongs: TopSong[];
+  userCountry: string;
+  isLoadingHomeData: boolean;
+  onShowSignUp: () => void;
+  onSearch?: (query: string) => void;
 }
 
 export const ContentRenderer = ({
@@ -17,14 +27,116 @@ export const ContentRenderer = ({
   searchQuery,
   isDebouncing,
   isSearching,
-  onPlaySong
+  onPlaySong,
+  topArtists,
+  topGlobalSongs,
+  topCountrySongs,
+  userCountry,
+  isLoadingHomeData,
+  onShowSignUp,
+  onSearch
 }: ContentRendererProps) => {
-  const getRandomColor = (): string => {
-    const colors = [
-      "#667eea", "#764ba2", "#f093fb", "#4facfe",
-      "#43e97b", "#fa709a", "#fee140", "#30cfd0"
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+  const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs'>('home');
+
+  /* 
+    Calculate items per row dynamically to ensure exactly 2 rows.
+    We'll determine columns based on grid width.
+  */
+  const [maxDisplayItems, setMaxDisplayItems] = useState(15); // Default approx for desktop
+  const gridRef = useRef<HTMLDivElement>(null);
+
+
+  // Reset view to home when search results appear
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      setCurrentView('home');
+    }
+  }, [searchResults.length]);
+
+  useEffect(() => {
+    const calculateMaxItems = () => {
+      if (gridRef.current) {
+        // card min-width is 200px, gap is 24px
+        // Formula: n * 200 + (n - 1) * 24 <= width
+        // n * 224 - 24 <= width
+        // n * 224 <= width + 24
+        // n <= (width + 24) / 224
+        const width = gridRef.current.offsetWidth;
+        const columns = Math.floor((width + 24) / 224);
+
+        // We want exactly 2 rows
+        // Total slots = columns * 2
+        // Last slot is for 'More Card', so we show (columns * 2) - 1 content items
+        // Ensure at least 1 item
+        const max = Math.max(1, (columns * 2) - 1);
+        setMaxDisplayItems(max);
+      }
+    };
+
+    calculateMaxItems();
+
+    // Add resize listener
+    window.addEventListener('resize', calculateMaxItems);
+
+    // Also use ResizeObserver for more robust handling
+    const observer = new ResizeObserver(calculateMaxItems);
+    if (gridRef.current) {
+      observer.observe(gridRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', calculateMaxItems);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentView !== 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentView]);
+
+  const getCountryName = (code: string): string => {
+    const countryNames: { [key: string]: string } = {
+      'us': 'United States',
+      'gb': 'United Kingdom',
+      'ca': 'Canada',
+      'au': 'Australia',
+      'de': 'Germany',
+      'fr': 'France',
+      'jp': 'Japan',
+      'kr': 'South Korea',
+      'cn': 'China',
+      'in': 'India',
+      'my': 'Malaysia',
+      'sg': 'Singapore',
+      'id': 'Indonesia',
+      'th': 'Thailand',
+      'ph': 'Philippines',
+      'vn': 'Vietnam',
+      'mx': 'Mexico',
+      'br': 'Brazil',
+      'ar': 'Argentina',
+      'es': 'Spain',
+      'it': 'Italy',
+      'nl': 'Netherlands',
+      'be': 'Belgium',
+      'ch': 'Switzerland',
+      'at': 'Austria',
+      'se': 'Sweden',
+      'no': 'Norway',
+      'dk': 'Denmark',
+      'fi': 'Finland',
+      'pl': 'Poland',
+      'ru': 'Russia',
+      'tr': 'Turkey',
+      'sa': 'Saudi Arabia',
+      'ae': 'United Arab Emirates',
+      'za': 'South Africa',
+      'eg': 'Egypt',
+      'nz': 'New Zealand'
+    };
+    return countryNames[code.toLowerCase()] || code.toUpperCase();
   };
 
   // Show loading animation while debouncing
@@ -72,10 +184,10 @@ export const ContentRenderer = ({
 
         <div className="music-grid">
           {searchResults.map((song, index) => (
-            <MusicCard 
-              key={`${song.videoId}-${index}`} 
-              song={song} 
-              index={index} 
+            <MusicCard
+              key={`${song.videoId}-${index}`}
+              song={song}
+              index={index}
               onPlay={onPlaySong}
             />
           ))}
@@ -85,34 +197,204 @@ export const ContentRenderer = ({
   }
 
   if (activeTab === "Home") {
-    return (
-      <div>
-        <h1 className="main-heading">
-          Welcome to <span className="brand-color">Hanya</span>Music
-        </h1>
-        <p className="main-subtitle">
-          Search for your favorite music using the search bar above
-        </p>
-
-        <div className="music-grid">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-            <div key={item} className="music-card slide-up">
-              <div
-                className="music-card-image"
-                style={{
-                  background: `linear-gradient(135deg, 
-                    ${getRandomColor()} 0%, 
-                    ${getRandomColor()} 100%)`
-                }}
-              ></div>
-              <h3 className="music-card-title">Trending Song {item}</h3>
-              <p className="music-card-artist">Popular Artist</p>
-            </div>
-          ))}
+    // Show full list views
+    if (currentView === 'artists' && topArtists.length > 0) {
+      return (
+        <div>
+          <button className="back-button" onClick={() => setCurrentView('home')}>
+            <ArrowLeft size={20} />
+            <span>Back to Home</span>
+          </button>
+          <h1 className="main-heading">Top Global Artists</h1>
+          <div className="music-grid">
+            {topArtists.map((artist, index) => (
+              <ArtistCard
+                key={`full-artist-${artist.rank}-${index}`}
+                artist={artist}
+                index={index}
+              />
+            ))}
+          </div>
         </div>
+      );
+    }
+
+    if (currentView === 'globalSongs' && topGlobalSongs.length > 0) {
+      return (
+        <div>
+          <button className="back-button" onClick={() => setCurrentView('home')}>
+            <ArrowLeft size={20} />
+            <span>Back to Home</span>
+          </button>
+          <h1 className="main-heading">Top Global Songs</h1>
+          <p className="main-subtitle">Hover over a song to preview</p>
+          <div className="music-grid">
+            {topGlobalSongs.map((song, index) => (
+              <SongPreviewCard
+                key={`full-global-song-${song.rank}-${index}`}
+                song={song}
+                index={index}
+                onPlay={onPlaySong}
+                onSearch={onSearch}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'countrySongs' && topCountrySongs.length > 0) {
+      return (
+        <div>
+          <button className="back-button" onClick={() => setCurrentView('home')}>
+            <ArrowLeft size={20} />
+            <span>Back to Home</span>
+          </button>
+          <h1 className="main-heading">Top Songs in {getCountryName(userCountry)}</h1>
+          <p className="main-subtitle">Hover over a song to preview</p>
+          <div className="music-grid">
+            {topCountrySongs.map((song, index) => (
+              <SongPreviewCard
+                key={`full-country-song-${song.rank}-${index}`}
+                song={song}
+                index={index}
+                onPlay={onPlaySong}
+                onSearch={onSearch}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Main home view
+    return (
+      <div ref={gridRef}>
+        {/* Sign-up CTA Banner */}
+        <div className="signup-cta-banner slide-up">
+          <div className="signup-cta-content">
+            <h2 className="signup-cta-title">
+              Discover Your Perfect Sound
+            </h2>
+            <p className="signup-cta-text">
+              Sign up for a personalized music experience with custom playlists, recommendations, and more
+            </p>
+            <button className="signup-cta-button" onClick={onShowSignUp}>
+              Sign Up Free
+            </button>
+          </div>
+        </div>
+
+        {/* Top Global Artists Section */}
+        {topArtists.length > 0 && (
+          <div className="section-container slide-up">
+            <h2 className="section-heading">Top Global Artists</h2>
+            <div className="music-grid">
+              {topArtists.slice(0, maxDisplayItems).map((artist, index) => (
+                <ArtistCard
+                  key={`artist-${artist.rank}-${index}`}
+                  artist={artist}
+                  index={index}
+                />
+              ))}
+              {topArtists.length > maxDisplayItems && (
+                <div
+                  className="more-card slide-up"
+                  onClick={() => setCurrentView('artists')}
+                >
+                  <div className="more-card-content">
+                    <div className="more-card-icon-wrapper">
+                      <ChevronRight size={24} className="more-icon" />
+                    </div>
+                    <span className="more-text">View All</span>
+                    <span className="more-count">{topArtists.length} Artists</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Top Global Songs Section */}
+        {topGlobalSongs.length > 0 && (
+          <div className="section-container slide-up">
+            <h2 className="section-heading">Top Global Songs</h2>
+            <p className="section-subtitle">Hover over a song to preview</p>
+            <div className="music-grid">
+              {topGlobalSongs.slice(0, maxDisplayItems).map((song, index) => (
+                <SongPreviewCard
+                  key={`global-song-${song.rank}-${index}`}
+                  song={song}
+                  index={index}
+                  onPlay={onPlaySong}
+                  onSearch={onSearch}
+                />
+              ))}
+              {topGlobalSongs.length > maxDisplayItems && (
+                <div
+                  className="more-card slide-up"
+                  onClick={() => setCurrentView('globalSongs')}
+                >
+                  <div className="more-card-content">
+                    <div className="more-card-icon-wrapper">
+                      <ChevronRight size={24} className="more-icon" />
+                    </div>
+                    <span className="more-text">View All</span>
+                    <span className="more-count">{topGlobalSongs.length} Songs</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Top Country Songs Section */}
+        {topCountrySongs.length > 0 && (
+          <div className="section-container slide-up">
+            <h2 className="section-heading">Top Songs in {getCountryName(userCountry)}</h2>
+            <p className="section-subtitle">Hover over a song to preview</p>
+            <div className="music-grid">
+              {topCountrySongs.slice(0, maxDisplayItems).map((song, index) => (
+                <SongPreviewCard
+                  key={`country-song-${song.rank}-${index}`}
+                  song={song}
+                  index={index}
+                  onPlay={onPlaySong}
+                  onSearch={onSearch}
+                />
+              ))}
+              {topCountrySongs.length > maxDisplayItems && (
+                <div
+                  className="more-card slide-up"
+                  onClick={() => setCurrentView('countrySongs')}
+                >
+                  <div className="more-card-content">
+                    <div className="more-card-icon-wrapper">
+                      <ChevronRight size={24} className="more-icon" />
+                    </div>
+                    <span className="more-text">View All</span>
+                    <span className="more-count">{topCountrySongs.length} Songs</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state if no data */}
+        {!isLoadingHomeData && topArtists.length === 0 && topGlobalSongs.length === 0 && topCountrySongs.length === 0 && (
+          <div>
+            <h1 className="main-heading">
+              Welcome to <span className="brand-color">Hanya</span>Music
+            </h1>
+            <p className="main-subtitle">
+              Search for your favorite music using the search bar above
+            </p>
+          </div>
+        )}
       </div>
     );
-  } else if (activeTab === "Trending" ){
+  } else if (activeTab === "Trending") {
     return (
       <div>
         <h1 className="main-heading">
@@ -121,23 +403,6 @@ export const ContentRenderer = ({
         <p className="main-subtitle">
           Search for your favorite music using the search bar above
         </p>
-
-        <div className="music-grid">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-            <div key={item} className="music-card slide-up">
-              <div
-                className="music-card-image"
-                style={{
-                  background: `linear-gradient(135deg, 
-                    ${getRandomColor()} 0%, 
-                    ${getRandomColor()} 100%)`
-                }}
-              ></div>
-              <h3 className="music-card-title">Trending Song {item}</h3>
-              <p className="music-card-artist">Popular Artist</p>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }

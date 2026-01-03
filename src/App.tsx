@@ -4,7 +4,8 @@ import { TopBar } from "./components/TopBar";
 import { ContentRenderer } from "./components/ContentRenderer";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { MiniPlayerTrigger } from "./components/MiniPlayerTrigger";
-import type { Song } from "./types";
+import { SignUpModal } from "./components/SignUpModal";
+import type { Song, TopArtist, TopSong } from "./types";
 import "./css/main.css";
 import "./css/responsive.css";
 
@@ -29,10 +30,17 @@ export default function App() {
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
   const [showLyrics, setShowLyrics] = useState(false);
+  const [topArtists, setTopArtists] = useState<TopArtist[]>([]);
+  const [topGlobalSongs, setTopGlobalSongs] = useState<TopSong[]>([]);
+  const [topCountrySongs, setTopCountrySongs] = useState<TopSong[]>([]);
+  const [userCountry, setUserCountry] = useState<string>('us');
+  const [isLoadingHomeData, setIsLoadingHomeData] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
   
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentSearchValueRef = useRef("");
+  const homeDataLoadedRef = useRef(false);
 
   // Handle responsive behavior at 770px
   useEffect(() => {
@@ -359,10 +367,133 @@ const handleToggleMenu = () => {
   // Add additional menu logic if needed
 };
 
-const handleToggleMic = () => {
+  const handleToggleMic = () => {
   // Implement voice control or search functionality
   console.log('Mic button clicked - implement voice search');
 };
+
+  // Detect user country using IP geolocation
+  const detectUserCountry = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://ipapi.co/json/', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const countryCode = data.country_code?.toLowerCase() || 'us';
+        console.log('Detected country:', countryCode);
+        return countryCode;
+      }
+    } catch (error) {
+      console.error('Failed to detect country:', error);
+    }
+    return 'us'; // Default to US
+  };
+
+  // Fetch top global artists
+  const fetchTopGlobalArtists = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/topglobalartists`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'HanyaMusic/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch top artists: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setTopArtists(data.artists || []);
+    } catch (error) {
+      console.error('Error fetching top global artists:', error);
+      setTopArtists([]);
+    }
+  };
+
+  // Fetch top global songs
+  const fetchTopGlobalSongs = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/topglobalsongs`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'HanyaMusic/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch top songs: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setTopGlobalSongs(data.songs || []);
+    } catch (error) {
+      console.error('Error fetching top global songs:', error);
+      setTopGlobalSongs([]);
+    }
+  };
+
+  // Fetch top country songs
+  const fetchTopCountrySongs = async (country: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/topcountrysongs/${country}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'HanyaMusic/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch country songs: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setTopCountrySongs(data.songs || []);
+    } catch (error) {
+      console.error('Error fetching top country songs:', error);
+      setTopCountrySongs([]);
+    }
+  };
+
+  // Fetch home page data when activeTab is Home
+  useEffect(() => {
+    if (activeTab === "Home" && searchResults.length === 0 && !homeDataLoadedRef.current) {
+      setIsLoadingHomeData(true);
+      homeDataLoadedRef.current = true;
+      
+      const loadHomeData = async () => {
+        const country = await detectUserCountry();
+        setUserCountry(country);
+        
+        // Fetch all data in parallel
+        await Promise.all([
+          fetchTopGlobalArtists(),
+          fetchTopGlobalSongs(),
+          fetchTopCountrySongs(country)
+        ]);
+        
+        setIsLoadingHomeData(false);
+      };
+
+      loadHomeData();
+    }
+    
+    // Reset home data loaded flag when search results appear
+    if (searchResults.length > 0) {
+      homeDataLoadedRef.current = false;
+    }
+  }, [activeTab, searchResults.length]);
 
 
   useEffect(() => {
@@ -428,6 +559,13 @@ const handleToggleMic = () => {
           isDebouncing={isDebouncing}
           isSearching={isSearching}
           onPlaySong={handlePlaySong}
+          topArtists={topArtists}
+          topGlobalSongs={topGlobalSongs}
+          topCountrySongs={topCountrySongs}
+          userCountry={userCountry}
+          isLoadingHomeData={isLoadingHomeData}
+          onShowSignUp={() => setShowSignUpModal(true)}
+          onSearch={handleSearchWithValue}
         />
       </div>
 
@@ -482,6 +620,12 @@ const handleToggleMic = () => {
           style={{ display: 'none' }}
         />
       )}
+
+      {/* Sign Up Modal */}
+      <SignUpModal
+        isOpen={showSignUpModal}
+        onClose={() => setShowSignUpModal(false)}
+      />
     </div>
   );
 }
