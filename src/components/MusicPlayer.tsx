@@ -1,21 +1,22 @@
-import { 
-  X, SkipBack, SkipForward, Play, Volume2, Loader, 
-  Shuffle, Repeat, Repeat1, Mic, Menu, Music 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  X, SkipBack, SkipForward, Play, Volume2, Loader,
+  Shuffle, Repeat, Repeat1, Mic, Menu, Music
 } from "lucide-react";
 import type { Song } from "../types";
 
 interface MusicPlayerProps {
+  audioRef: React.RefObject<HTMLAudioElement | null>;
   song: Song | null;
   isPlaying: boolean;
   isLoadingStream: boolean;
   showPlayer: boolean;
   isSidebarCollapsed: boolean;
   isMobileView: boolean;
-  currentTime: number;
   duration: number;
   volume: number;
   isShuffle: boolean;
-  repeatMode: 'off' | 'one' | 'all'; // 'off', 'one', 'all'
+  repeatMode: 'off' | 'one' | 'all';
   showLyrics: boolean;
   onClose: () => void;
   onTogglePlay: () => void;
@@ -26,18 +27,18 @@ interface MusicPlayerProps {
   onToggleShuffle: () => void;
   onToggleRepeat: () => void;
   onToggleLyrics: () => void;
-  onToggleMenu?: () => void; // Optional for mobile hamburger
-  onToggleMic?: () => void; // Optional for mic functionality
+  onToggleMenu?: () => void;
+  onToggleMic?: () => void;
 }
 
 export const MusicPlayer = ({
+  audioRef,
   song,
   isPlaying,
   isLoadingStream,
   showPlayer,
   isSidebarCollapsed,
   isMobileView,
-  currentTime,
   duration,
   volume,
   isShuffle,
@@ -55,12 +56,58 @@ export const MusicPlayer = ({
   onToggleMenu,
   onToggleMic
 }: MusicPlayerProps) => {
+  const [displayTime, setDisplayTime] = useState(0);
+  const progressFillRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastSecondRef = useRef(0);
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // High-performance animation loop
+  useEffect(() => {
+    if (!showPlayer || !song) return;
+
+    const animate = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        const currentTime = audio.currentTime;
+        const durationVal = audio.duration || 1; // Avoid divide by zero
+        const progress = Math.min(currentTime / durationVal, 1);
+
+        // Direct DOM update for 60fps smoothness without re-renders
+        if (progressFillRef.current) {
+          progressFillRef.current.style.transform = `scaleX(${progress})`;
+        }
+
+        // Only update React state when the integer second changes (1Hz)
+        // enabling efficient text updates
+        const currentSecond = Math.floor(currentTime);
+        if (currentSecond !== lastSecondRef.current) {
+          lastSecondRef.current = currentSecond;
+          setDisplayTime(currentTime);
+        }
+      }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    if (isPlaying) {
+      rafRef.current = requestAnimationFrame(animate);
+    } else {
+      // If paused, just update once to ensure UI is in sync
+      animate();
+    }
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [isPlaying, showPlayer, song, audioRef]); // Minimal dependencies
 
   if (!showPlayer) return null;
 
@@ -74,7 +121,7 @@ export const MusicPlayer = ({
           >
             <X size={18} />
           </button>
-          
+
           {isLoadingStream ? (
             <div className="loading-stream">
               <Loader size={24} className="spinner" />
@@ -101,7 +148,7 @@ export const MusicPlayer = ({
 
               <div className="player-controls">
                 {/* Shuffle Button - Left of main controls */}
-                <button 
+                <button
                   className={`control-btn shuffle-btn ${isShuffle ? 'active' : ''}`}
                   onClick={onToggleShuffle}
                   title={isShuffle ? "Shuffle enabled" : "Enable shuffle"}
@@ -112,24 +159,24 @@ export const MusicPlayer = ({
                 <button className="control-btn" onClick={onSkipBack}>
                   <SkipBack size={18} />
                 </button>
-                
+
                 <button className="control-btn play-btn" onClick={onTogglePlay}>
                   {isPlaying ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                      <rect x="6" y="4" width="4" height="16" rx="1"/>
-                      <rect x="14" y="4" width="4" height="16" rx="1"/>
+                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                      <rect x="14" y="4" width="4" height="16" rx="1" />
                     </svg>
                   ) : (
                     <Play size={20} fill="white" />
                   )}
                 </button>
-                
+
                 <button className="control-btn" onClick={onSkipForward}>
                   <SkipForward size={18} />
                 </button>
 
                 {/* Repeat Button - Right of main controls */}
-                <button 
+                <button
                   className={`control-btn repeat-btn ${repeatMode !== 'off' ? 'active' : ''}`}
                   onClick={onToggleRepeat}
                   title={repeatMode === 'one' ? "Repeat one" : repeatMode === 'all' ? "Repeat all" : "Repeat off"}
@@ -141,13 +188,19 @@ export const MusicPlayer = ({
               {/* Compact Progress Container */}
               <div className="progress-container compact">
                 <div className="progress-bar" onClick={onProgressClick}>
-                  <div 
-                    className="progress-fill" 
-                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  <div
+                    ref={progressFillRef}
+                    className="progress-fill"
+                    style={{
+                      transformOrigin: 'left',
+                      transform: 'scaleX(0)', // Start at 0, updated by RAF
+                      width: '100%', // Take full width, scale affects visible width
+                      transition: 'none' // Disable CSS transition for instant RAF updates
+                    }}
                   ></div>
                 </div>
                 <div className="progress-time">
-                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(displayTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
@@ -160,16 +213,16 @@ export const MusicPlayer = ({
                     <Menu size={18} />
                   </button>
                 )}
-                
+
                 {/* Mic Icon */}
                 {onToggleMic && (
                   <button className="middle-control-btn" onClick={onToggleMic}>
                     <Mic size={18} />
                   </button>
                 )}
-                
+
                 {/* Lyrics Icon */}
-                <button 
+                <button
                   className={`middle-control-btn lyrics-btn ${showLyrics ? 'active' : ''}`}
                   onClick={onToggleLyrics}
                   title={showLyrics ? "Hide lyrics" : "Show lyrics"}

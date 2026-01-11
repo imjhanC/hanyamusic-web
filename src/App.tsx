@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { ContentRenderer } from "./components/ContentRenderer";
@@ -22,7 +22,7 @@ export default function App() {
   const [isLoadingStream, setIsLoadingStream] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  // currentTime removed for performance to prevent app-wide re-renders
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1.0);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -36,7 +36,9 @@ export default function App() {
   const [userCountry, setUserCountry] = useState<string>('us');
   const [isLoadingHomeData, setIsLoadingHomeData] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
-  
+  const [playlist, setPlaylist] = useState<Song[]>([]);
+  const [currentSongIndex, setCurrentSongIndex] = useState<number>(-1);
+
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentSearchValueRef = useRef("");
@@ -48,7 +50,7 @@ export default function App() {
       const width = window.innerWidth;
       const isMobile = width <= 770;
       setIsMobileView(isMobile);
-      
+
       // Auto-collapse sidebar at 770px
       if (isMobile) {
         setIsSidebarCollapsed(true);
@@ -65,7 +67,7 @@ export default function App() {
 
     // Add event listener
     window.addEventListener('resize', handleResize);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -96,14 +98,9 @@ export default function App() {
     }
   }, [volume]);
 
-  // Handle seeking when currentTime changes
-  useEffect(() => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - currentTime) > 0.1) {
-      audioRef.current.currentTime = currentTime;
-    }
-  }, [currentTime]);
+  // currentTime effect removed
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     if (isMobileView) {
       setIsSidebarOpen(!isSidebarOpen);
       // On mobile, when sidebar opens, it's not collapsed (shows text)
@@ -112,9 +109,9 @@ export default function App() {
       // On desktop, toggle between collapsed (icons only) and expanded (icons + text)
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
-  };
+  }, [isMobileView, isSidebarOpen, isSidebarCollapsed]);
 
-  const handleSearchWithValue = async (searchValue: string) => {
+  const handleSearchWithValue = useCallback(async (searchValue: string) => {
     if (!searchValue || searchValue.length < 2) {
       setSearchResults([]);
       setActiveTab("Home");
@@ -127,7 +124,7 @@ export default function App() {
     try {
       const url = `${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}`;
       console.log('Searching:', url);
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -136,18 +133,18 @@ export default function App() {
           'User-Agent': 'HanyaMusic/1.0'
         }
       });
-      
+
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
         throw new Error(`Search failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Search results:', data);
-      
+
       if (!data || data.length === 0) {
         setSearchResults([]);
         setActiveTab("Home");
@@ -164,7 +161,7 @@ export default function App() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -186,7 +183,7 @@ export default function App() {
 
     // Start debouncing animation
     setIsDebouncing(true);
-    
+
     // Wait 3 seconds after user stops typing before searching
     searchDebounceTimer.current = setTimeout(() => {
       setIsDebouncing(false);
@@ -206,7 +203,7 @@ export default function App() {
     setSearchResults([]);
     setActiveTab("Home");
     setIsDebouncing(false);
-    
+
     if (searchDebounceTimer.current) {
       clearTimeout(searchDebounceTimer.current);
       searchDebounceTimer.current = null;
@@ -233,12 +230,23 @@ export default function App() {
     };
   }, []);
 
-  const handlePlaySong = async (song: Song) => {
+  const handlePlaySong = useCallback(async (song: Song) => {
     setIsLoadingStream(true);
     try {
+      // If the song already has a stream_url, use it directly
+      if (song.stream_url) {
+        setCurrentSong(song);
+        setIsPlaying(true);
+        // currentTime resets automatically with new src or we set it if needed
+        setShowMusicPlayer(true);
+        setIsLoadingStream(false);
+        return;
+      }
+
+      // Otherwise, fetch the stream
       const url = `${API_BASE_URL}/stream/${song.videoId}`;
       console.log('Fetching stream:', url);
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -247,18 +255,18 @@ export default function App() {
           'User-Agent': 'HanyaMusic/1.0'
         }
       });
-      
+
       console.log('Stream response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Stream error response:', errorText);
         throw new Error(`Failed to get stream: ${response.status}`);
       }
-      
+
       const streamData = await response.json();
       console.log('Stream data:', streamData);
-      
+
       setCurrentSong({
         ...song,
         stream_url: streamData.stream_url,
@@ -266,7 +274,7 @@ export default function App() {
         quality: streamData.quality
       });
       setIsPlaying(true);
-      setCurrentTime(0);
+      if (audioRef.current) audioRef.current.currentTime = 0;
       setShowMusicPlayer(true);
     } catch (error: unknown) {
       console.error('Stream error:', error);
@@ -275,28 +283,94 @@ export default function App() {
     } finally {
       setIsLoadingStream(false);
     }
-  };
+  }, []);
 
-  const handleClosePlayer = () => {
+  const handleSetPlaylist = useCallback((songs: Song[], currentIndex: number) => {
+    setPlaylist(songs);
+    setCurrentSongIndex(currentIndex);
+  }, []);
+
+  const playNextSong = useCallback(async () => {
+    if (playlist.length === 0 || currentSongIndex === -1 || isLoadingStream) return;
+
+    const nextIndex = currentSongIndex + 1;
+    if (nextIndex >= playlist.length) {
+      console.log('End of playlist reached');
+      return;
+    }
+
+    const nextSong = playlist[nextIndex];
+    setCurrentSongIndex(nextIndex);
+
+    // Fetch the full song data using the search API
+    try {
+      const searchUrl = `${API_BASE_URL}/search/exact?song_title=${encodeURIComponent(nextSong.title)}&artist=${encodeURIComponent(nextSong.uploader)}`;
+      console.log('Auto-playing next song:', searchUrl);
+
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'HanyaMusic/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to fetch next song: ${response.status}`);
+        return; // Stop trying if fetch fails
+      }
+
+      const songData = await response.json();
+
+      const playerSong: Song = {
+        ...nextSong,
+        stream_url: songData.stream_url,
+        format: songData.format,
+        quality: songData.quality,
+        duration: songData.duration ? `${Math.floor(songData.duration / 60)}:${String(songData.duration % 60).padStart(2, '0')}` : nextSong.duration
+      };
+
+      handlePlaySong(playerSong);
+    } catch (error) {
+      console.error('Error playing next song:', error);
+      // Don't recursively call - just log the error
+    }
+  }, [playlist, currentSongIndex, isLoadingStream, handlePlaySong]);
+
+  // Add event listener for when audio ends to auto-play next song
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      console.log('Song ended, playing next...');
+      playNextSong();
+    };
+
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [playNextSong]);
+
+  const handleClosePlayer = useCallback(() => {
     setShowMusicPlayer(false);
     setCurrentSong(null);
     setIsPlaying(false);
-    setCurrentTime(0);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  };
+  }, []);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     if (!currentSong) return;
-    setIsPlaying(!isPlaying);
-  };
+    setIsPlaying(prevIsPlaying => !prevIsPlaying);
+  }, [currentSong]);
 
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+    // No-op: Time updates are handled internally by MusicPlayer via RAF
   };
 
   const handleLoadedMetadata = () => {
@@ -305,72 +379,71 @@ export default function App() {
     }
   };
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!currentSong || duration === 0) return;
-    
+  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!currentSong || duration === 0 || !audioRef.current) return;
+
     const progressBar = e.currentTarget;
     const rect = progressBar.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const width = rect.width;
     const percentage = clickX / width;
     const newTime = percentage * duration;
-    
-    setCurrentTime(newTime);
-  };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    audioRef.current.currentTime = newTime;
+  }, [currentSong, duration]);
+
+  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value) / 100;
     setVolume(newVolume);
-  };
+  }, []);
 
-  const handleSkipBack = () => {
-    if (!currentSong) return;
-    const newTime = Math.max(0, currentTime - 10);
-    setCurrentTime(newTime);
-  };
+  const handleSkipBack = useCallback(() => {
+    if (!currentSong || !audioRef.current) return;
+    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
+  }, [currentSong]);
 
-  const handleSkipForward = () => {
-    if (!currentSong) return;
-    const newTime = Math.min(duration, currentTime + 10);
-    setCurrentTime(newTime);
-  };
+  const handleSkipForward = useCallback(() => {
+    if (!currentSong || !audioRef.current) return;
+    audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
+  }, [currentSong, duration]);
 
-  const handleToggleShuffle = () => {
-  setIsShuffle(!isShuffle);
-};
+  const handleToggleShuffle = useCallback(() => {
+    setIsShuffle(prev => !prev);
+  }, []);
 
-const handleToggleRepeat = () => {
-  // Cycle through repeat modes: off -> one -> all -> off
-  if (repeatMode === 'off') {
-    setRepeatMode('one');
-  } else if (repeatMode === 'one') {
-    setRepeatMode('all');
-  } else {
-    setRepeatMode('off');
-  }
-};
+  const handleToggleRepeat = useCallback(() => {
+    setRepeatMode(prev => {
+      if (prev === 'off') return 'one';
+      if (prev === 'one') return 'all';
+      return 'off';
+    });
+  }, []);
 
-const handleToggleLyrics = () => {
-  setShowLyrics(!showLyrics);
-  // You can implement lyrics fetching logic here
-  if (!showLyrics && currentSong) {
-    // Fetch lyrics for current song
-    console.log('Fetching lyrics for:', currentSong.title);
-  }
-};
+  const handleToggleLyrics = useCallback(() => {
+    setShowLyrics(prev => !prev);
+    // You can implement lyrics fetching logic here
+    if (!showLyrics && currentSong) {
+      // Fetch lyrics for current song
+      console.log('Fetching lyrics for:', currentSong.title);
+    }
+  }, [showLyrics, currentSong]);
 
-const handleToggleMenu = () => {
-  // Toggle sidebar or player menu
-  if (isMobileView) {
-    toggleSidebar();
-  }
-  // Add additional menu logic if needed
-};
+  const handleToggleMenu = useCallback(() => {
+    // Toggle sidebar or player menu
+    if (isMobileView) {
+      toggleSidebar();
+    }
+    // Add additional menu logic if needed
+  }, [isMobileView, toggleSidebar]);
 
-  const handleToggleMic = () => {
-  // Implement voice control or search functionality
-  console.log('Mic button clicked - implement voice search');
-};
+  const handleToggleMic = useCallback(() => {
+    // Implement voice control or search functionality
+    console.log('Mic button clicked - implement voice search');
+  }, []);
+
+  const handleShowSignUp = useCallback(() => {
+    setShowSignUpModal(true);
+  }, []);
 
   // Detect user country using IP geolocation
   const detectUserCountry = async (): Promise<string> => {
@@ -381,7 +454,7 @@ const handleToggleMenu = () => {
           'Accept': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const countryCode = data.country_code?.toLowerCase() || 'us';
@@ -471,24 +544,24 @@ const handleToggleMenu = () => {
     if (activeTab === "Home" && searchResults.length === 0 && !homeDataLoadedRef.current) {
       setIsLoadingHomeData(true);
       homeDataLoadedRef.current = true;
-      
+
       const loadHomeData = async () => {
         const country = await detectUserCountry();
         setUserCountry(country);
-        
+
         // Fetch all data in parallel
         await Promise.all([
           fetchTopGlobalArtists(),
           fetchTopGlobalSongs(),
           fetchTopCountrySongs(country)
         ]);
-        
+
         setIsLoadingHomeData(false);
       };
 
       loadHomeData();
     }
-    
+
     // Reset home data loaded flag when search results appear
     if (searchResults.length > 0) {
       homeDataLoadedRef.current = false;
@@ -529,7 +602,7 @@ const handleToggleMenu = () => {
 
       {/* Sidebar Overlay for Mobile */}
       {isMobileView && isSidebarOpen && (
-        <div 
+        <div
           className="sidebar-overlay show"
           onClick={() => {
             setIsSidebarOpen(false);
@@ -564,8 +637,11 @@ const handleToggleMenu = () => {
           topCountrySongs={topCountrySongs}
           userCountry={userCountry}
           isLoadingHomeData={isLoadingHomeData}
-          onShowSignUp={() => setShowSignUpModal(true)}
+          onShowSignUp={handleShowSignUp}
           onSearch={handleSearchWithValue}
+          apiBaseUrl={API_BASE_URL}
+          onSetPlaylist={handleSetPlaylist}
+          isPlayingAnySong={currentSong !== null}
         />
       </div>
 
@@ -583,8 +659,8 @@ const handleToggleMenu = () => {
         isLoadingStream={isLoadingStream}
         showPlayer={showMusicPlayer}
         isSidebarCollapsed={isSidebarCollapsed}
+        audioRef={audioRef}
         isMobileView={isMobileView}
-        currentTime={currentTime}
         duration={duration}
         volume={volume}
         isShuffle={isShuffle}

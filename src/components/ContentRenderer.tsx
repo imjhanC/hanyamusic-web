@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { Loader, ChevronRight, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Loader, ChevronRight, ArrowLeft, Trophy, Sparkles, Music } from "lucide-react";
 import { MusicCard } from "./MusicCard";
 import { ArtistCard } from "./ArtistCard";
+import { ArtistListItem } from "./ArtistListItem";
+import { ArtistDetailView } from "./ArtistDetailView";
 import { SongPreviewCard } from "./SongPreviewCard";
 import type { Song, TopArtist, TopSong } from "../types";
 
@@ -19,9 +21,12 @@ interface ContentRendererProps {
   isLoadingHomeData: boolean;
   onShowSignUp: () => void;
   onSearch?: (query: string) => void;
+  apiBaseUrl: string;
+  onSetPlaylist?: (songs: Song[], currentIndex: number) => void;
+  isPlayingAnySong?: boolean;
 }
 
-export const ContentRenderer = ({
+export const ContentRenderer = React.memo(({
   activeTab,
   searchResults,
   searchQuery,
@@ -34,9 +39,12 @@ export const ContentRenderer = ({
   userCountry,
   isLoadingHomeData,
   onShowSignUp,
-  onSearch
+  onSearch,
+  apiBaseUrl,
+  isPlayingAnySong
 }: ContentRendererProps) => {
-  const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs' | 'artistDetail'>('home');
+  const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
 
   /* 
     Calculate items per row dynamically to ensure exactly 2 rows.
@@ -90,11 +98,41 @@ export const ContentRenderer = ({
     };
   }, []);
 
+  const scrollPositionRef = useRef(0);
+
   useEffect(() => {
-    if (currentView !== 'home') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollContainer = document.querySelector('.main-content');
+    if (!scrollContainer) return;
+
+    if (currentView === 'artistDetail') {
+      // When entering detail view, scroll to top
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    } else if (currentView === 'artists') {
+      // When returning to artists list, restore scroll position if we have one
+      if (scrollPositionRef.current > 0) {
+        scrollContainer.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
+      }
+    } else {
+      // For other views (home, global songs, etc), scroll top and reset ref
+      // This ensures entering 'artists' view from Home starts at top
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+      scrollPositionRef.current = 0;
     }
   }, [currentView]);
+
+  const handleArtistClick = (artistName: string) => {
+    // Save current scroll position of the container before navigating
+    const scrollContainer = document.querySelector('.main-content');
+    if (scrollContainer) {
+      scrollPositionRef.current = scrollContainer.scrollTop;
+    }
+    setSelectedArtistName(artistName);
+    setCurrentView('artistDetail');
+  };
+
+  const handleBackToArtists = React.useCallback(() => {
+    setCurrentView('artists');
+  }, []);
 
   const getCountryName = (code: string): string => {
     const countryNames: { [key: string]: string } = {
@@ -205,17 +243,51 @@ export const ContentRenderer = ({
             <ArrowLeft size={20} />
             <span>Back to Home</span>
           </button>
-          <h1 className="main-heading">Top Global Artists</h1>
-          <div className="music-grid">
+
+          <div className="top-artists-banner">
+            <div className="banner-deco-circle circle-1"></div>
+            <div className="banner-deco-circle circle-2"></div>
+            <div className="banner-floating-icon icon-trophy"><Trophy size={140} strokeWidth={1} /></div>
+            <div className="banner-floating-icon icon-music"><Music size={100} strokeWidth={1} /></div>
+            <div className="banner-floating-icon icon-sparkles"><Sparkles size={60} strokeWidth={1} /></div>
+
+            <div className="banner-content-wrapper">
+              <div className="banner-badge">
+                <Sparkles size={14} /> Global Rankings
+              </div>
+              <h1 className="top-artists-title">Top Global Artists</h1>
+              <p className="top-artists-subtitle">Chart-topping performancers dominating the airwaves worldwide</p>
+            </div>
+          </div>
+
+          <div className="artist-list-container">
+            <div className="artist-list-header">
+              <span>#</span>
+              <span>Artist</span>
+              <span>Name</span>
+            </div>
             {topArtists.map((artist, index) => (
-              <ArtistCard
-                key={`full-artist-${artist.rank}-${index}`}
-                artist={artist}
-                index={index}
-              />
+              <div key={`full-artist-${artist.rank}-${index}`} onClick={() => handleArtistClick(artist.artist_name)}>
+                <ArtistListItem
+                  artist={artist}
+                  index={index}
+                />
+              </div>
             ))}
           </div>
         </div>
+      );
+    }
+
+    if (currentView === 'artistDetail' && selectedArtistName) {
+      return (
+        <ArtistDetailView
+          artistName={selectedArtistName}
+          onBack={handleBackToArtists}
+          onPlaySong={onPlaySong}
+          apiBaseUrl={apiBaseUrl}
+          isPlayingAnySong={isPlayingAnySong}
+        />
       );
     }
 
@@ -291,11 +363,12 @@ export const ContentRenderer = ({
             <h2 className="section-heading">Top Global Artists</h2>
             <div className="music-grid">
               {topArtists.slice(0, maxDisplayItems).map((artist, index) => (
-                <ArtistCard
-                  key={`artist-${artist.rank}-${index}`}
-                  artist={artist}
-                  index={index}
-                />
+                <div key={`artist-${artist.rank}-${index}`} onClick={() => handleArtistClick(artist.artist_name)}>
+                  <ArtistCard
+                    artist={artist}
+                    index={index}
+                  />
+                </div>
               ))}
               {topArtists.length > maxDisplayItems && (
                 <div
@@ -417,4 +490,4 @@ export const ContentRenderer = ({
       </p>
     </div>
   );
-};
+});

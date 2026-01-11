@@ -43,3 +43,22 @@ export interface CountrySongsResponse {
   songs: TopSong[];
   sample_thumbnails: string[];
 }
+
+export interface ArtistSong {
+  song_name: string;
+  release_date: string;
+  release_month: string;
+  release_year: number;
+  thumbnail: string;
+  preview_url: string | null;
+}
+
+export interface ArtistSongsResponse {
+  artist: string;
+  total_songs: number;
+  total_albums: number;
+  albums: {
+    [key: string]: ArtistSong[];
+  };
+  sample_thumbnails: string[];
+}
