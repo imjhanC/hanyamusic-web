@@ -217,7 +217,7 @@ interface ArtistDetailViewProps {
     artistQueue?: { artistName: string, albumName: string, songs: any[], currentIndex: number } | null;
 }
 
-export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, apiBaseUrl, isPlayingAnySong, currentSong, audioRef, onSetArtistQueue, artistQueue }: ArtistDetailViewProps) => {
+export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, apiBaseUrl, isPlayingAnySong, currentSong, onSetArtistQueue, artistQueue }: ArtistDetailViewProps) => {
     const [data, setData] = useState<ArtistSongsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
