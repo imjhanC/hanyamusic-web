@@ -18,9 +18,10 @@ interface ArtistSongRowProps {
     onPlayFull: (song: ArtistSong) => void;
     isDisabled: boolean;
     isPreviewDisabled: boolean;
+    isCurrentlyPlaying: boolean;
 }
 
-const ArtistSongRow = React.memo(({ song, index, formattedDate, onPlayFull, isDisabled, isPreviewDisabled }: ArtistSongRowProps) => {
+const ArtistSongRow = React.memo(({ song, index, formattedDate, onPlayFull, isDisabled, isPreviewDisabled, isCurrentlyPlaying }: ArtistSongRowProps) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const previewTimeoutRef = useRef<number | null>(null);
     const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
@@ -134,8 +135,8 @@ const ArtistSongRow = React.memo(({ song, index, formattedDate, onPlayFull, isDi
         }
     }, [isDisabled, isPreviewDisabled]);
 
-    const rowClassName = `album-song-row ${isPreviewPlaying ? 'preview-active' : ''} ${isDisabled ? 'disabled' : ''}`;
-    const songTitleClassName = `song-title ${!song.preview_url ? 'disabled' : ''} ${isPreviewPlaying ? 'highlight' : ''}`;
+    const rowClassName = `album-song-row ${isPreviewPlaying ? 'preview-active' : ''} ${isDisabled ? 'disabled' : ''} ${isCurrentlyPlaying ? 'currently-playing' : ''}`;
+    const songTitleClassName = `song-title ${!song.preview_url ? 'disabled' : ''} ${isPreviewPlaying ? 'highlight' : ''} ${isCurrentlyPlaying ? 'highlight' : ''}`;
 
     return (
         <div
@@ -189,7 +190,8 @@ const ArtistSongRow = React.memo(({ song, index, formattedDate, onPlayFull, isDi
         prevProps.index === nextProps.index &&
         prevProps.isDisabled === nextProps.isDisabled &&
         prevProps.isPreviewDisabled === nextProps.isPreviewDisabled &&
-        prevProps.formattedDate === nextProps.formattedDate
+        prevProps.formattedDate === nextProps.formattedDate &&
+        prevProps.isCurrentlyPlaying === nextProps.isCurrentlyPlaying
     );
 });
 
@@ -209,9 +211,13 @@ interface ArtistDetailViewProps {
     onPlaySong: (song: Song) => void;
     apiBaseUrl: string;
     isPlayingAnySong?: boolean;
+    currentSong?: Song | null;
+    audioRef?: React.RefObject<HTMLAudioElement | null>;
+    onSetArtistQueue?: (artistName: string, albumName: string, songs: any[], currentIndex: number) => void;
+    artistQueue?: { artistName: string, albumName: string, songs: any[], currentIndex: number } | null;
 }
 
-export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, apiBaseUrl, isPlayingAnySong }: ArtistDetailViewProps) => {
+export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, apiBaseUrl, isPlayingAnySong, currentSong, audioRef, onSetArtistQueue, artistQueue }: ArtistDetailViewProps) => {
     const [data, setData] = useState<ArtistSongsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -287,7 +293,7 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
     }, [data]);
 
     // Optimized play song handler
-    const handlePlayFullSong = useCallback(async (song: ArtistSong) => {
+    const handlePlayFullSong = useCallback(async (song: ArtistSong, albumName?: string, songIndexInAlbum?: number) => {
         if (!data || isLoadingSong) return;
 
         setIsLoadingSong(true);
@@ -322,6 +328,23 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
                 quality: songData.quality
             };
 
+            // Set the artist queue for global playback management
+            if (onSetArtistQueue && albumName !== undefined && songIndexInAlbum !== undefined) {
+                const album = processedAlbums.find(a => a.name === albumName);
+                if (album) {
+                    onSetArtistQueue(data.artist, albumName, album.songs, songIndexInAlbum);
+                }
+            } else if (onSetArtistQueue) {
+                // Find the album and index of the song
+                for (const album of processedAlbums) {
+                    const index = album.songs.findIndex(s => s.song_name === song.song_name);
+                    if (index !== -1) {
+                        onSetArtistQueue(data.artist, album.name, album.songs, index);
+                        break;
+                    }
+                }
+            }
+
             onPlaySong(playerSong);
         } catch (err) {
             console.error('Error fetching song:', err);
@@ -329,7 +352,14 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
         } finally {
             setIsLoadingSong(false);
         }
-    }, [data, isLoadingSong, apiBaseUrl, onPlaySong]);
+    }, [data, isLoadingSong, apiBaseUrl, onPlaySong, processedAlbums, onSetArtistQueue]);
+
+    // Check if a song is currently playing
+    const isCurrentlyPlayingSong = useCallback((songName: string, albumName: string) => {
+        if (!currentSong || !artistQueue) return false;
+        // Check if the current song matches and we're in the same album
+        return currentSong.title === songName && artistQueue.albumName === albumName && artistQueue.artistName === data?.artist;
+    }, [currentSong, artistQueue, data]);
 
     const toggleSortOrder = useCallback(() => {
         setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
@@ -441,9 +471,10 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
                                             song={song}
                                             index={index}
                                             formattedDate={song.formattedDate}
-                                            onPlayFull={handlePlayFullSong}
+                                            onPlayFull={(s) => handlePlayFullSong(s, album.name, index)}
                                             isDisabled={isRowDisabled}
                                             isPreviewDisabled={isPreviewDisabled}
+                                            isCurrentlyPlaying={isCurrentlyPlayingSong(song.song_name, album.name)}
                                         />
                                     ))}
                                 </div>

@@ -31,7 +31,7 @@ export const Sidebar = ({
 
   const renderSidebarContent = () => {
     if (!isSidebarOpen && isMobileView) return null;
-    
+
     return (
       <>
         <div className="sidebar-header">

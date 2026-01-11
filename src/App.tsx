@@ -38,6 +38,9 @@ export default function App() {
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [currentSongIndex, setCurrentSongIndex] = useState<number>(-1);
+  const [resetHomeCounter, setResetHomeCounter] = useState(0);
+  const [artistQueue, setArtistQueue] = useState<{ artistName: string, albumName: string, songs: any[], currentIndex: number } | null>(null);
+  const isPlayingFromArtistRef = useRef(false);
 
   const searchDebounceTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -110,6 +113,21 @@ export default function App() {
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
   }, [isMobileView, isSidebarOpen, isSidebarCollapsed]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab === "Home") {
+      // Clear search results when going to Home
+      setSearchResults([]);
+      setSearchQuery("");
+      if (currentSearchValueRef.current) currentSearchValueRef.current = "";
+
+      if (activeTab === "Home") {
+        // Force reset if already on Home
+        setResetHomeCounter(prev => prev + 1);
+      }
+    }
+    setActiveTab(tab);
+  }, [activeTab]);
 
   const handleSearchWithValue = useCallback(async (searchValue: string) => {
     if (!searchValue || searchValue.length < 2) {
@@ -230,7 +248,7 @@ export default function App() {
     };
   }, []);
 
-  const handlePlaySong = useCallback(async (song: Song) => {
+  const handlePlaySong = useCallback(async (song: Song, skipOnError: boolean = false) => {
     setIsLoadingStream(true);
     try {
       // If the song already has a stream_url, use it directly
@@ -279,7 +297,15 @@ export default function App() {
     } catch (error: unknown) {
       console.error('Stream error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to load audio stream: ${errorMessage}`);
+
+      // If skipOnError is true, try to play next song instead of showing alert
+      if (skipOnError && isPlayingFromArtistRef.current && artistQueue) {
+        console.log('Skipping failed song, trying next...');
+        // Will be defined below
+        playNextInArtistQueue();
+      } else {
+        alert(`Failed to load audio stream: ${errorMessage}`);
+      }
     } finally {
       setIsLoadingStream(false);
     }
@@ -289,6 +315,75 @@ export default function App() {
     setPlaylist(songs);
     setCurrentSongIndex(currentIndex);
   }, []);
+
+  const handleSetArtistQueue = useCallback((artistName: string, albumName: string, songs: any[], currentIndex: number) => {
+    setArtistQueue({ artistName, albumName, songs, currentIndex });
+    isPlayingFromArtistRef.current = true;
+  }, []);
+
+  const playNextInArtistQueue = useCallback(async () => {
+    if (!artistQueue || !isPlayingFromArtistRef.current) return;
+
+    const nextIndex = artistQueue.currentIndex + 1;
+
+    // Check if there's a next song in the current album
+    if (nextIndex < artistQueue.songs.length) {
+      const nextSong = artistQueue.songs[nextIndex];
+      console.log('Playing next song in artist queue:', nextSong.song_name);
+
+      try {
+        const searchUrl = `${API_BASE_URL}/search/exact?song_title=${encodeURIComponent(nextSong.song_name)}&artist=${encodeURIComponent(artistQueue.artistName)}`;
+        const response = await fetch(searchUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            'User-Agent': 'HanyaMusic/1.0'
+          }
+        });
+
+        if (!response.ok) {
+          console.error(`Failed to fetch next song: ${response.status}`);
+          // Update index and try next song
+          setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
+          playNextInArtistQueue();
+          return;
+        }
+
+        const songData = await response.json();
+
+        // Check if stream_url exists
+        if (!songData.stream_url) {
+          console.log('Next song has no stream_url, skipping...');
+          setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
+          playNextInArtistQueue();
+          return;
+        }
+
+        const playerSong: Song = {
+          videoId: songData.title || `${nextSong.song_name}-${artistQueue.artistName}`,
+          title: songData.title || nextSong.song_name,
+          uploader: artistQueue.artistName,
+          thumbnail_url: songData.thumbnail_url || nextSong.thumbnail,
+          duration: songData.duration ? `${Math.floor(songData.duration / 60)}:${String(songData.duration % 60).padStart(2, '0')}` : "0:00",
+          view_count: "0",
+          stream_url: songData.stream_url,
+          format: songData.format,
+          quality: songData.quality
+        };
+
+        setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
+        handlePlaySong(playerSong, true);
+      } catch (error) {
+        console.error('Error playing next song in queue:', error);
+        // Try next song
+        setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
+        playNextInArtistQueue();
+      }
+    } else {
+      console.log('Reached end of artist queue');
+      isPlayingFromArtistRef.current = false;
+    }
+  }, [artistQueue, handlePlaySong]);
 
   const playNextSong = useCallback(async () => {
     if (playlist.length === 0 || currentSongIndex === -1 || isLoadingStream) return;
@@ -343,8 +438,14 @@ export default function App() {
     if (!audio) return;
 
     const handleEnded = () => {
-      console.log('Song ended, playing next...');
-      playNextSong();
+      console.log('Song ended, checking what to play next...');
+
+      // Prioritize artist queue if playing from artist view
+      if (isPlayingFromArtistRef.current && artistQueue) {
+        playNextInArtistQueue();
+      } else if (playlist.length > 0) {
+        playNextSong();
+      }
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -352,7 +453,7 @@ export default function App() {
     return () => {
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [playNextSong]);
+  }, [playNextSong, playNextInArtistQueue, artistQueue, playlist]);
 
   const handleClosePlayer = useCallback(() => {
     setShowMusicPlayer(false);
@@ -594,7 +695,7 @@ export default function App() {
         isSidebarCollapsed={isSidebarCollapsed}
         isMobileView={isMobileView}
         isSidebarOpen={isSidebarOpen}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         toggleSidebar={toggleSidebar}
         setIsSidebarOpen={setIsSidebarOpen}
         setIsSidebarCollapsed={setIsSidebarCollapsed}
@@ -642,6 +743,12 @@ export default function App() {
           apiBaseUrl={API_BASE_URL}
           onSetPlaylist={handleSetPlaylist}
           isPlayingAnySong={currentSong !== null}
+          currentSong={currentSong}
+          audioRef={audioRef}
+          onResetToHome={() => setResetHomeCounter(prev => prev + 1)}
+          resetHomeCounter={resetHomeCounter}
+          onSetArtistQueue={handleSetArtistQueue}
+          artistQueue={artistQueue}
         />
       </div>
 

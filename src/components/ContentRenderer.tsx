@@ -24,6 +24,13 @@ interface ContentRendererProps {
   apiBaseUrl: string;
   onSetPlaylist?: (songs: Song[], currentIndex: number) => void;
   isPlayingAnySong?: boolean;
+  currentSong?: Song | null;
+  audioRef?: React.RefObject<HTMLAudioElement | null>;
+  // Counter to force reset to home view properly
+  resetHomeCounter?: number;
+  onResetToHome?: () => void; // Keeping for compatibility, though counter is preferred
+  onSetArtistQueue?: (artistName: string, albumName: string, songs: any[], currentIndex: number) => void;
+  artistQueue?: { artistName: string, albumName: string, songs: any[], currentIndex: number } | null;
 }
 
 export const ContentRenderer = React.memo(({
@@ -41,7 +48,12 @@ export const ContentRenderer = React.memo(({
   onShowSignUp,
   onSearch,
   apiBaseUrl,
-  isPlayingAnySong
+  isPlayingAnySong,
+  currentSong,
+  audioRef,
+  resetHomeCounter,
+  onSetArtistQueue,
+  artistQueue
 }: ContentRendererProps) => {
   const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs' | 'artistDetail'>('home');
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
@@ -60,6 +72,13 @@ export const ContentRenderer = React.memo(({
       setCurrentView('home');
     }
   }, [searchResults.length]);
+
+  // Reset to home when activeTab is Home and reset counter changes (or activeTab changes)
+  useEffect(() => {
+    if (activeTab === 'Home') {
+      setCurrentView('home');
+    }
+  }, [activeTab, resetHomeCounter]);
 
   useEffect(() => {
     const calculateMaxItems = () => {
@@ -287,6 +306,10 @@ export const ContentRenderer = React.memo(({
           onPlaySong={onPlaySong}
           apiBaseUrl={apiBaseUrl}
           isPlayingAnySong={isPlayingAnySong}
+          currentSong={currentSong}
+          audioRef={audioRef}
+          onSetArtistQueue={onSetArtistQueue}
+          artistQueue={artistQueue}
         />
       );
     }

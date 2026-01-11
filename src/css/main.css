@@ -2131,6 +2131,18 @@ body {
   color: #fff;
 }
 
+.album-song-row.currently-playing {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-left-color: #22c55e;
+  color: #fff;
+}
+
+.album-song-row.currently-playing .song-title {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+
 /* Left Section: Number & Title */
 .song-row-left {
   display: flex;
