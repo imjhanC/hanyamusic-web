@@ -79,7 +79,7 @@ const ArtistSongRow = React.memo(({ song, index, formattedDate, onPlayFull, isDi
                         });
                 }
             }
-        }, 2000);
+        }, 1000);
     }, [isDisabled, isPreviewDisabled, song.preview_url]);
 
     const handleMouseLeave = useCallback(() => {
@@ -355,9 +355,15 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
     }, [data, isLoadingSong, apiBaseUrl, onPlaySong, processedAlbums, onSetArtistQueue]);
 
     // Check if a song is currently playing
-    const isCurrentlyPlayingSong = useCallback((songName: string, albumName: string) => {
+    const isCurrentlyPlayingSong = useCallback((songName: string, albumName: string, index: number) => {
         if (!currentSong || !artistQueue) return false;
-        // Check if the current song matches and we're in the same album
+
+        // Check if the current song matches by index within the active queue context
+        if (artistQueue.artistName === data?.artist && artistQueue.albumName === albumName) {
+            return artistQueue.currentIndex === index;
+        }
+
+        // Fallback to title matching
         return currentSong.title === songName && artistQueue.albumName === albumName && artistQueue.artistName === data?.artist;
     }, [currentSong, artistQueue, data]);
 
@@ -474,7 +480,7 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
                                             onPlayFull={(s) => handlePlayFullSong(s, album.name, index)}
                                             isDisabled={isRowDisabled}
                                             isPreviewDisabled={isPreviewDisabled}
-                                            isCurrentlyPlaying={isCurrentlyPlayingSong(song.song_name, album.name)}
+                                            isCurrentlyPlaying={isCurrentlyPlayingSong(song.song_name, album.name, index)}
                                         />
                                     ))}
                                 </div>

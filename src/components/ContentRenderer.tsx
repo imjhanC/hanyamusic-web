@@ -5,7 +5,7 @@ import { ArtistCard } from "./ArtistCard";
 import { ArtistListItem } from "./ArtistListItem";
 import { ArtistDetailView } from "./ArtistDetailView";
 import { SongPreviewCard } from "./SongPreviewCard";
-import type { Song, TopArtist, TopSong } from "../types";
+import type { Song, TopArtist, TopSong, RelatedArtist } from "../types";
 
 interface ContentRendererProps {
   activeTab: string;
@@ -57,6 +57,7 @@ export const ContentRenderer = React.memo(({
 }: ContentRendererProps) => {
   const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs' | 'artistDetail'>('home');
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
+  const [relatedArtists, setRelatedArtists] = useState<RelatedArtist[]>([]);
 
   /* 
     Calculate items per row dynamically to ensure exactly 2 rows.
@@ -138,6 +139,40 @@ export const ContentRenderer = React.memo(({
       scrollPositionRef.current = 0;
     }
   }, [currentView]);
+
+  // Fetch related artists when searching
+  useEffect(() => {
+    const fetchRelatedArtists = async () => {
+      if (activeTab === 'Home' && searchResults.length > 0 && searchQuery.trim()) {
+        try {
+          const response = await fetch(`${apiBaseUrl}/getrelatedartists/${encodeURIComponent(searchQuery)}`, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true',
+              'User-Agent': 'HanyaMusic/1.0'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.related_artists) {
+              setRelatedArtists(data.related_artists);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch related artists", error);
+        }
+      } else {
+        // Clear related artists if search is cleared or tab changed, 
+        // but not necessarily if searchResults changes (e.g. pagination), though for now clearing on empty results is safe.
+        if (searchResults.length === 0 || !searchQuery.trim()) {
+          setRelatedArtists([]);
+        }
+      }
+    };
+
+    // Debounce fetching slightly to avoid spamming if results update frequently
+    const timeoutId = setTimeout(fetchRelatedArtists, 500);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, searchResults.length, searchQuery, apiBaseUrl]);
 
   const handleArtistClick = (artistName: string) => {
     // Save current scroll position of the container before navigating
@@ -229,6 +264,30 @@ export const ContentRenderer = React.memo(({
     );
   }
 
+  // Check for artist detail view first (even when there are search results)
+  if (activeTab === "Home" && currentView === 'artistDetail' && selectedArtistName) {
+    return (
+      <ArtistDetailView
+        artistName={selectedArtistName}
+        onBack={() => {
+          // If we came from search results, go back to search results view
+          if (searchResults.length > 0) {
+            setCurrentView('home');
+          } else {
+            handleBackToArtists();
+          }
+        }}
+        onPlaySong={onPlaySong}
+        apiBaseUrl={apiBaseUrl}
+        isPlayingAnySong={isPlayingAnySong}
+        currentSong={currentSong}
+        audioRef={audioRef}
+        onSetArtistQueue={onSetArtistQueue}
+        artistQueue={artistQueue}
+      />
+    );
+  }
+
   if (activeTab === "Home" && searchResults.length > 0) {
     return (
       <div>
@@ -238,6 +297,26 @@ export const ContentRenderer = React.memo(({
         <p className="main-subtitle">
           Found {searchResults.length} results for "{searchQuery}"
         </p>
+
+        {relatedArtists.length > 0 && (
+          <div className="section-container slide-up" style={{ marginBottom: '30px' }}>
+            <h2 className="section-heading">Related Artists</h2>
+            <div className="music-grid">
+              {relatedArtists.map((artist, index) => (
+                <div key={`related-artist-${index}`} onClick={() => handleArtistClick(artist.artist_name)}>
+                  <ArtistCard
+                    artist={{
+                      rank: index + 1,
+                      artist_name: artist.artist_name,
+                      thumbnail: artist.image || ''
+                    }}
+                    index={index}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="music-grid">
           {searchResults.map((song, index) => (
@@ -295,22 +374,6 @@ export const ContentRenderer = React.memo(({
             ))}
           </div>
         </div>
-      );
-    }
-
-    if (currentView === 'artistDetail' && selectedArtistName) {
-      return (
-        <ArtistDetailView
-          artistName={selectedArtistName}
-          onBack={handleBackToArtists}
-          onPlaySong={onPlaySong}
-          apiBaseUrl={apiBaseUrl}
-          isPlayingAnySong={isPlayingAnySong}
-          currentSong={currentSong}
-          audioRef={audioRef}
-          onSetArtistQueue={onSetArtistQueue}
-          artistQueue={artistQueue}
-        />
       );
     }
 

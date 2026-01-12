@@ -62,3 +62,13 @@ export interface ArtistSongsResponse {
   };
   sample_thumbnails: string[];
 }
+
+export interface RelatedArtist {
+  artist_name: string;
+  image: string | null;
+}
+
+export interface RelatedArtistsResponse {
+  song: string;
+  related_artists: RelatedArtist[];
+}

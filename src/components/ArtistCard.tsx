@@ -12,8 +12,8 @@ export const ArtistCard = ({ artist, index }: ArtistCardProps) => {
   };
 
   return (
-    <div 
-      key={`artist-${artist.rank}-${index}`} 
+    <div
+      key={`artist-${artist.rank}-${index}`}
       className="artist-card slide-up"
       onClick={handleClick}
       style={{ cursor: 'pointer' }}
