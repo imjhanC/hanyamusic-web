@@ -3,14 +3,15 @@ import { X } from "lucide-react";
 interface SignUpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSignUpContinue: () => void;
+  onSwitchToLogin?: () => void;
 }
 
-export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
+export const SignUpModal = ({ isOpen, onClose, onSignUpContinue, onSwitchToLogin }: SignUpModalProps) => {
   if (!isOpen) return null;
 
   const handleSignUp = () => {
-    console.log('Sign up clicked - to be implemented');
-    // Placeholder for future sign-up functionality
+    onSignUpContinue();
   };
 
   return (
@@ -20,7 +21,7 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
         <button className="modal-close-btn" onClick={onClose}>
           <X size={20} />
         </button>
-        
+
         <div className="signup-modal-content">
           <h2 className="signup-modal-title">
             Join <span className="brand-color">Hanya</span>Music
@@ -37,7 +38,7 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
                 <p>Discover music tailored to your taste</p>
               </div>
             </div>
-            
+
             <div className="benefit-item">
               <div className="benefit-icon">📋</div>
               <div className="benefit-text">
@@ -45,7 +46,7 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
                 <p>Save and organize your favorite songs</p>
               </div>
             </div>
-            
+
             <div className="benefit-item">
               <div className="benefit-icon">📊</div>
               <div className="benefit-text">
@@ -53,22 +54,14 @@ export const SignUpModal = ({ isOpen, onClose }: SignUpModalProps) => {
                 <p>See your music history and statistics</p>
               </div>
             </div>
-            
-            <div className="benefit-item">
-              <div className="benefit-icon">⭐</div>
-              <div className="benefit-text">
-                <h3>Follow Artists</h3>
-                <p>Stay updated with your favorite musicians</p>
-              </div>
-            </div>
           </div>
 
           <button className="signup-btn" onClick={handleSignUp}>
             Sign Up Free
           </button>
-          
+
           <p className="signup-footer">
-            Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); console.log('Login clicked'); }}>Log in</a>
+            Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSwitchToLogin?.(); }}>Log in</a>
           </p>
         </div>
       </div>

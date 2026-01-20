@@ -5,6 +5,7 @@ interface SidebarProps {
   isSidebarCollapsed: boolean;
   isMobileView: boolean;
   isSidebarOpen: boolean;
+  isLoggedIn: boolean;
   setActiveTab: (tab: string) => void;
   toggleSidebar: () => void;
   setIsSidebarOpen: (open: boolean) => void;
@@ -16,6 +17,7 @@ export const Sidebar = ({
   isSidebarCollapsed,
   isMobileView,
   isSidebarOpen,
+  isLoggedIn,
   setActiveTab,
   toggleSidebar,
   setIsSidebarOpen,
@@ -66,20 +68,25 @@ export const Sidebar = ({
             <TrendingUp size={20} className="sidebar-icon" />
             {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Trending"}
           </a>
-          <a
-            className={`sidebar-link ${activeTab === "Playlists" ? "active" : ""}`}
-            onClick={() => handleTabClick("Playlists")}
-          >
-            <ListMusic size={20} className="sidebar-icon" />
-            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Playlists"}
-          </a>
-          <a
-            className={`sidebar-link ${activeTab === "Your Songs" ? "active" : ""}`}
-            onClick={() => handleTabClick("Your Songs")}
-          >
-            <Music2 size={20} className="sidebar-icon" />
-            {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Your Songs"}
-          </a>
+
+          {isLoggedIn && (
+            <>
+              <a
+                className={`sidebar-link ${activeTab === "Playlists" ? "active" : ""}`}
+                onClick={() => handleTabClick("Playlists")}
+              >
+                <ListMusic size={20} className="sidebar-icon" />
+                {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Playlists"}
+              </a>
+              <a
+                className={`sidebar-link ${activeTab === "Your Songs" ? "active" : ""}`}
+                onClick={() => handleTabClick("Your Songs")}
+              >
+                <Music2 size={20} className="sidebar-icon" />
+                {(!isSidebarCollapsed || (isMobileView && isSidebarOpen)) && "Your Songs"}
+              </a>
+            </>
+          )}
         </nav>
       </>
     );

@@ -31,6 +31,7 @@ interface ContentRendererProps {
   onResetToHome?: () => void; // Keeping for compatibility, though counter is preferred
   onSetArtistQueue?: (artistName: string, albumName: string, songs: any[], currentIndex: number) => void;
   artistQueue?: { artistName: string, albumName: string, songs: any[], currentIndex: number } | null;
+  isLoggedIn: boolean;
 }
 
 export const ContentRenderer = React.memo(({
@@ -53,7 +54,8 @@ export const ContentRenderer = React.memo(({
   audioRef,
   resetHomeCounter,
   onSetArtistQueue,
-  artistQueue
+  artistQueue,
+  isLoggedIn
 }: ContentRendererProps) => {
   const [currentView, setCurrentView] = useState<'home' | 'artists' | 'globalSongs' | 'countrySongs' | 'artistDetail'>('home');
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
@@ -464,19 +466,21 @@ export const ContentRenderer = React.memo(({
     return (
       <div ref={gridRef}>
         {/* Sign-up CTA Banner */}
-        <div className="signup-cta-banner slide-up">
-          <div className="signup-cta-content">
-            <h2 className="signup-cta-title">
-              Discover Your Perfect Sound
-            </h2>
-            <p className="signup-cta-text">
-              Sign up for a personalized music experience with custom playlists, recommendations, and more
-            </p>
-            <button className="signup-cta-button" onClick={onShowSignUp}>
-              Sign Up Free
-            </button>
+        {!isLoggedIn && (
+          <div className="signup-cta-banner slide-up">
+            <div className="signup-cta-content">
+              <h2 className="signup-cta-title">
+                Discover Your Perfect Sound
+              </h2>
+              <p className="signup-cta-text">
+                Sign up for a personalized music experience with custom playlists, recommendations, and more
+              </p>
+              <button className="signup-cta-button" onClick={onShowSignUp}>
+                Sign Up Free
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Top Global Artists Section */}
         {topArtists.length > 0 && (

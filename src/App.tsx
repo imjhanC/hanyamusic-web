@@ -5,9 +5,12 @@ import { ContentRenderer } from "./components/ContentRenderer";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { MiniPlayerTrigger } from "./components/MiniPlayerTrigger";
 import { SignUpModal } from "./components/SignUpModal";
+import { RegisterPage } from "./components/credentials/RegisterPage";
+import { LoginModal } from "./components/credentials/LoginModal";
 import type { Song, TopArtist, TopSong } from "./types";
 import "./css/main.css";
 import "./css/responsive.css";
+import "react-easy-crop/react-easy-crop.css";
 
 const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
@@ -36,6 +39,16 @@ export default function App() {
   const [userCountry, setUserCountry] = useState<string>('us');
   const [isLoadingHomeData, setIsLoadingHomeData] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [showRegisterPage, setShowRegisterPage] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<{
+    id: number;
+    username: string;
+    email: string;
+    display_name?: string;
+    avatar_url?: string;
+  } | null>(null);
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [currentSongIndex, setCurrentSongIndex] = useState<number>(-1);
   const [resetHomeCounter, setResetHomeCounter] = useState(0);
@@ -77,6 +90,24 @@ export default function App() {
     };
   }, []);
 
+  // Check for existing auth on mount
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    const storedUserData = localStorage.getItem('user_data');
+
+    if (token && storedUserData) {
+      try {
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
+        setIsLoggedIn(true);
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
+      }
+    }
+  }, []);
+
   // Control audio playback based on isPlaying state
   useEffect(() => {
     if (!audioRef.current || !currentSong) return;
@@ -102,6 +133,23 @@ export default function App() {
   }, [volume]);
 
   // currentTime effect removed
+
+  // Update document title based on current song
+  useEffect(() => {
+    if (currentSong) {
+      document.title = `${currentSong.title} - ${currentSong.uploader}`;
+    } else {
+      document.title = "hanyamusic-web";
+    }
+  }, [currentSong]);
+
+  // Ensure LoginModal is closed if RegisterPage is opened
+  useEffect(() => {
+    if (showRegisterPage) {
+      setShowLoginModal(false);
+      setShowSignUpModal(false);
+    }
+  }, [showRegisterPage]);
 
   const toggleSidebar = useCallback(() => {
     if (isMobileView) {
@@ -546,6 +594,66 @@ export default function App() {
     setShowSignUpModal(true);
   }, []);
 
+  const handleContinueToRegister = useCallback(() => {
+    setShowSignUpModal(false);
+    setShowLoginModal(false);
+    setShowRegisterPage(true);
+  }, []);
+
+  const handleDirectRegister = useCallback(() => {
+    setShowLoginModal(false);
+    setShowSignUpModal(false);
+    setShowRegisterPage(true);
+  }, []);
+
+  const handleRegisterSuccess = useCallback((newUserData: any) => {
+    setUserData({
+      id: newUserData.id,
+      username: newUserData.username,
+      email: newUserData.email,
+      display_name: newUserData.display_name,
+      avatar_url: newUserData.avatar_url
+    });
+    setIsLoggedIn(true);
+    setShowRegisterPage(false);
+
+    // Navigate to home
+    setActiveTab("Home");
+  }, []);
+
+  const handleLoginSuccess = useCallback((newUserData: any) => {
+    setUserData({
+      id: newUserData.id,
+      username: newUserData.username,
+      email: newUserData.email,
+      display_name: newUserData.display_name,
+      avatar_url: newUserData.avatar_url
+    });
+    setIsLoggedIn(true);
+    setShowLoginModal(false);
+
+    // Navigate to home
+    setActiveTab("Home");
+  }, []);
+
+  const handleSignIn = useCallback(() => {
+    console.log('Sign in clicked');
+    setShowLoginModal(true);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_data');
+    setIsLoggedIn(false);
+    setUserData(null);
+    setActiveTab("Home");
+  }, []);
+
+  const handleChangePassword = useCallback(() => {
+    // Placeholder for now
+    alert("Change password functionality will be implemented in the next update.");
+  }, []);
+
   // Detect user country using IP geolocation
   const detectUserCountry = async (): Promise<string> => {
     try {
@@ -695,6 +803,7 @@ export default function App() {
         isSidebarCollapsed={isSidebarCollapsed}
         isMobileView={isMobileView}
         isSidebarOpen={isSidebarOpen}
+        isLoggedIn={isLoggedIn}
         setActiveTab={handleTabChange}
         toggleSidebar={toggleSidebar}
         setIsSidebarOpen={setIsSidebarOpen}
@@ -718,6 +827,12 @@ export default function App() {
         isSearching={isSearching}
         isSidebarCollapsed={isSidebarCollapsed}
         isMobileView={isMobileView}
+        isLoggedIn={isLoggedIn}
+        userData={userData}
+        onSignIn={handleSignIn}
+        onSignUp={handleDirectRegister}
+        onLogout={handleLogout}
+        onChangePassword={handleChangePassword}
         onSearchChange={handleSearchInputChange}
         onKeyPress={handleKeyPress}
         onClearSearch={handleClearSearch}
@@ -749,6 +864,7 @@ export default function App() {
           resetHomeCounter={resetHomeCounter}
           onSetArtistQueue={handleSetArtistQueue}
           artistQueue={artistQueue}
+          isLoggedIn={isLoggedIn}
         />
       </div>
 
@@ -808,6 +924,32 @@ export default function App() {
       <SignUpModal
         isOpen={showSignUpModal}
         onClose={() => setShowSignUpModal(false)}
+        onSignUpContinue={handleContinueToRegister}
+        onSwitchToLogin={() => {
+          setShowSignUpModal(false);
+          setShowLoginModal(true);
+        }}
+      />
+
+      {/* Register Page */}
+      <RegisterPage
+        isOpen={showRegisterPage}
+        onClose={() => setShowRegisterPage(false)}
+        onRegisterSuccess={handleRegisterSuccess}
+        onSwitchToLogin={() => {
+          setShowRegisterPage(false);
+          setShowLoginModal(true);
+        }}
+        apiBaseUrl={API_BASE_URL}
+      />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+        onSignUpContinue={handleContinueToRegister}
+        apiBaseUrl={API_BASE_URL}
       />
     </div>
   );
