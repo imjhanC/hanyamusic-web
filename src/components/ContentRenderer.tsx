@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Loader, ChevronRight, ArrowLeft, Trophy, Sparkles, Music } from "lucide-react";
+import { ChevronRight, ArrowLeft, Trophy, Sparkles, Music } from "lucide-react";
 import { MusicCard } from "./MusicCard";
 import { ArtistCard } from "./ArtistCard";
 import { ArtistListItem } from "./ArtistListItem";
@@ -236,17 +236,17 @@ export const ContentRenderer = React.memo(({
     return (
       <div className="search-loading-container">
         <div className="music-visualizer">
-          <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.5s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
-          <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.5s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
         </div>
         <h2 className="loading-text">Searching for "{searchQuery}"</h2>
         <p className="loading-subtext">Finding the best music for you...</p>
@@ -258,8 +258,21 @@ export const ContentRenderer = React.memo(({
   if (isSearching) {
     return (
       <div className="search-loading-container">
-        <Loader size={48} className="spinner" />
+        <div className="music-visualizer">
+          <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.5s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+          <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+        </div>
         <h2 className="loading-text">Loading results...</h2>
+        <p className="loading-subtext">Fetching the latest hits</p>
       </div>
     );
   }
@@ -426,6 +439,28 @@ export const ContentRenderer = React.memo(({
     }
 
     // Main home view
+    if (isLoadingHomeData) {
+      return (
+        <div className="search-loading-container" style={{ marginTop: '100px' }}>
+          <div className="music-visualizer">
+            <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.5s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+            <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+          </div>
+          <h2 className="loading-text">Curating best music for you...</h2>
+          <p className="loading-subtext">Gathering top charts from around the world</p>
+        </div>
+      );
+    }
+
     return (
       <div ref={gridRef}>
         {/* Sign-up CTA Banner */}

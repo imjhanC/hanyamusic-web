@@ -284,6 +284,16 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
         });
     }, [data, sortOrder]);
 
+    // Flatten songs for continuous playback
+    const allSongsLinear = useMemo(() => {
+        return processedAlbums.flatMap(album =>
+            album.songs.map((song) => ({
+                ...song,
+                parentAlbumName: album.name
+            }))
+        );
+    }, [processedAlbums]);
+
     // Hero background image memoized
     const heroBackground = useMemo(() => {
         if (!data) return '';
@@ -293,7 +303,7 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
     }, [data]);
 
     // Optimized play song handler
-    const handlePlayFullSong = useCallback(async (song: ArtistSong, albumName?: string, songIndexInAlbum?: number) => {
+    const handlePlayFullSong = useCallback(async (song: ArtistSong, albumName?: string) => {
         if (!data || isLoadingSong) return;
 
         setIsLoadingSong(true);
@@ -328,20 +338,22 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
                 quality: songData.quality
             };
 
-            // Set the artist queue for global playback management
-            if (onSetArtistQueue && albumName !== undefined && songIndexInAlbum !== undefined) {
-                const album = processedAlbums.find(a => a.name === albumName);
-                if (album) {
-                    onSetArtistQueue(data.artist, albumName, album.songs, songIndexInAlbum);
+            // Set the artist queue for continuous playback across albums
+            if (onSetArtistQueue && allSongsLinear.length > 0) {
+                let globalIndex = -1;
+
+                if (albumName) {
+                    globalIndex = allSongsLinear.findIndex(s =>
+                        s.song_name === song.song_name && s.parentAlbumName === albumName
+                    );
                 }
-            } else if (onSetArtistQueue) {
-                // Find the album and index of the song
-                for (const album of processedAlbums) {
-                    const index = album.songs.findIndex(s => s.song_name === song.song_name);
-                    if (index !== -1) {
-                        onSetArtistQueue(data.artist, album.name, album.songs, index);
-                        break;
-                    }
+
+                if (globalIndex === -1) {
+                    globalIndex = allSongsLinear.findIndex(s => s.song_name === song.song_name);
+                }
+
+                if (globalIndex !== -1) {
+                    onSetArtistQueue(data.artist, "Discography", allSongsLinear, globalIndex);
                 }
             }
 
@@ -352,19 +364,28 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
         } finally {
             setIsLoadingSong(false);
         }
-    }, [data, isLoadingSong, apiBaseUrl, onPlaySong, processedAlbums, onSetArtistQueue]);
+    }, [data, isLoadingSong, apiBaseUrl, onPlaySong, processedAlbums, onSetArtistQueue, allSongsLinear]);
 
     // Check if a song is currently playing
     const isCurrentlyPlayingSong = useCallback((songName: string, albumName: string, index: number) => {
         if (!currentSong || !artistQueue) return false;
 
-        // Check if the current song matches by index within the active queue context
-        if (artistQueue.artistName === data?.artist && artistQueue.albumName === albumName) {
-            return artistQueue.currentIndex === index;
+        // Check if the current song matches
+        if (artistQueue.artistName === data?.artist) {
+            // Helper check for flattened queue (Discography mode)
+            const playingQueueSong = artistQueue.songs[artistQueue.currentIndex];
+            if (playingQueueSong && playingQueueSong.parentAlbumName) {
+                return playingQueueSong.song_name === songName && playingQueueSong.parentAlbumName === albumName;
+            }
+
+            // Legacy/fallback check for single album queue
+            if (artistQueue.albumName === albumName) {
+                return artistQueue.currentIndex === index;
+            }
         }
 
         // Fallback to title matching
-        return currentSong.title === songName && artistQueue.albumName === albumName && artistQueue.artistName === data?.artist;
+        return currentSong.title === songName && artistQueue.artistName === data?.artist;
     }, [currentSong, artistQueue, data]);
 
     const toggleSortOrder = useCallback(() => {
@@ -384,17 +405,17 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
             {loading ? (
                 <div className="search-loading-container">
                     <div className="music-visualizer">
-                        <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.5s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.4s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.3s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="visualizer-bar" style={{ animationDelay: '0s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.5s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.6s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.7s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.8s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-0.9s' }}></div>
+                        <div className="visualizer-bar" style={{ animationDelay: '-1.0s' }}></div>
                     </div>
                     <h2 className="loading-text">Loading {artistName}</h2>
                     <p className="loading-subtext">Fetching discography...</p>
@@ -477,7 +498,7 @@ export const ArtistDetailView = React.memo(({ artistName, onBack, onPlaySong, ap
                                             song={song}
                                             index={index}
                                             formattedDate={song.formattedDate}
-                                            onPlayFull={(s) => handlePlayFullSong(s, album.name, index)}
+                                            onPlayFull={(s) => handlePlayFullSong(s, album.name)}
                                             isDisabled={isRowDisabled}
                                             isPreviewDisabled={isPreviewDisabled}
                                             isCurrentlyPlaying={isCurrentlyPlayingSong(song.song_name, album.name, index)}
