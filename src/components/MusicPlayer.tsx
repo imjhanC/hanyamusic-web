@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   X, SkipBack, SkipForward, Play, Volume2, Loader,
-  Shuffle, Repeat, Repeat1, Mic, Menu, Music
+  Shuffle, Repeat, Repeat1, Mic, Menu, Video
 } from "lucide-react";
 import type { Song } from "../types";
 
@@ -17,7 +17,7 @@ interface MusicPlayerProps {
   volume: number;
   isShuffle: boolean;
   repeatMode: 'off' | 'one' | 'all';
-  showLyrics: boolean;
+  isMusicVideoActive: boolean;
   onClose: () => void;
   onTogglePlay: () => void;
   onVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -26,7 +26,7 @@ interface MusicPlayerProps {
   onSkipForward: () => void;
   onToggleShuffle: () => void;
   onToggleRepeat: () => void;
-  onToggleLyrics: () => void;
+  onToggleMusicVideo: () => void;
   onToggleMenu?: () => void;
   onToggleMic?: () => void;
 }
@@ -43,7 +43,7 @@ export const MusicPlayer = ({
   volume,
   isShuffle,
   repeatMode,
-  showLyrics,
+  isMusicVideoActive,
   onClose,
   onTogglePlay,
   onVolumeChange,
@@ -52,7 +52,7 @@ export const MusicPlayer = ({
   onSkipForward,
   onToggleShuffle,
   onToggleRepeat,
-  onToggleLyrics,
+  onToggleMusicVideo,
   onToggleMenu,
   onToggleMic
 }: MusicPlayerProps) => {
@@ -221,13 +221,13 @@ export const MusicPlayer = ({
                   </button>
                 )}
 
-                {/* Lyrics Icon */}
+                {/* Video Icon */}
                 <button
-                  className={`middle-control-btn lyrics-btn ${showLyrics ? 'active' : ''}`}
-                  onClick={onToggleLyrics}
-                  title={showLyrics ? "Hide lyrics" : "Show lyrics"}
+                  className={`middle-control-btn music-video-btn ${isMusicVideoActive ? 'active' : ''}`}
+                  onClick={onToggleMusicVideo}
+                  title={isMusicVideoActive ? "Close music video" : "Watch music video"}
                 >
-                  <Music size={18} />
+                  <Video size={18} />
                 </button>
               </div>
 
@@ -298,8 +298,8 @@ export const MusicPlayer = ({
                     <Mic size={18} />
                   </button>
                 )}
-                <button className="middle-control-btn" disabled>
-                  <Music size={18} />
+                <button className="middle-control-btn music-video-btn" disabled>
+                  <Video size={18} />
                 </button>
               </div>
 

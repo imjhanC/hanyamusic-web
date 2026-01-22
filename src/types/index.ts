@@ -11,6 +11,17 @@ export interface Song {
   preview_url?: string;
 }
 
+export interface VideoStreamResponse {
+  video_url: string;
+  audio_url: string;
+  title?: string;
+  duration?: number;
+  thumbnail_url?: string;
+  quality?: string;
+  stream_type?: string;
+  cached?: boolean;
+}
+
 export interface TopArtist {
   rank: number;
   artist_name: string;

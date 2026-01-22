@@ -247,6 +247,10 @@
     z-index: 250;
     transition: transform 0.3s ease, width 0.3s ease;
   }
+
+  .music-video-overlay {
+    height: calc(100vh - 60px);
+  }
   
   .top-bar.collapsed {
     left: 0 !important;
