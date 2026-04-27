@@ -13,9 +13,12 @@ import "./css/main.css";
 import "./css/responsive.css";
 import "react-easy-crop/react-easy-crop.css";
 
-const API_BASE_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
+// Base URL is now fetched dynamically, fallback kept for resilience
+const FALLBACK_API_URL = "https://instinctually-monosodium-shawnda.ngrok-free.app";
 
 export default function App() {
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>("");
+
   const [activeTab, setActiveTab] = useState("Home");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,7 +29,6 @@ export default function App() {
   const [isLoadingStream, setIsLoadingStream] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  // currentTime removed for performance to prevent app-wide re-renders
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1.0);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -72,6 +74,29 @@ export default function App() {
   const homeDataLoadedRef = useRef(false);
   const isMusicVideoActiveRef = useRef(false);
 
+  // Fetch the actual API base URL from Firebase
+  useEffect(() => {
+    const fetchTunnelUrl = async () => {
+      try {
+        const res = await fetch(
+          "https://hanyamusic-ac4ce-default-rtdb.asia-southeast1.firebasedatabase.app/firebase.json"
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.tunnel_url) {
+            setApiBaseUrl(data.tunnel_url);
+            return;
+          }
+        }
+        throw new Error("Invalid response structure");
+      } catch (err) {
+        console.error("Failed to fetch tunnel URL, using fallback:", err);
+        setApiBaseUrl(FALLBACK_API_URL);
+      }
+    };
+    fetchTunnelUrl();
+  }, []);
+
   useEffect(() => {
     isMusicVideoActiveRef.current = isMusicVideoActive;
   }, [isMusicVideoActive]);
@@ -85,24 +110,17 @@ export default function App() {
       const isMobile = width <= 770;
       setIsMobileView(isMobile);
 
-      // Auto-collapse sidebar at 770px
       if (isMobile) {
         setIsSidebarCollapsed(true);
         setIsSidebarOpen(false);
       } else {
-        // Reset to original state on larger screens
         setIsSidebarCollapsed(false);
         setIsSidebarOpen(true);
       }
     };
 
-    // Initial check
     handleResize();
-
-    // Add event listener
     window.addEventListener('resize', handleResize);
-
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
     };
@@ -150,8 +168,6 @@ export default function App() {
     if (mvAudioRef.current) mvAudioRef.current.volume = volume;
   }, [volume]);
 
-  // currentTime effect removed
-
   // Update document title based on current song
   useEffect(() => {
     if (currentSong) {
@@ -171,24 +187,20 @@ export default function App() {
 
   const toggleSidebar = useCallback(() => {
     if (isMobileView) {
-      setIsSidebarOpen(!isSidebarOpen);
-      // On mobile, when sidebar opens, it's not collapsed (shows text)
-      setIsSidebarCollapsed(!isSidebarOpen);
+      setIsSidebarOpen(prev => !prev);
+      setIsSidebarCollapsed(prev => !prev);
     } else {
-      // On desktop, toggle between collapsed (icons only) and expanded (icons + text)
-      setIsSidebarCollapsed(!isSidebarCollapsed);
+      setIsSidebarCollapsed(prev => !prev);
     }
-  }, [isMobileView, isSidebarOpen, isSidebarCollapsed]);
+  }, [isMobileView]);
 
   const handleTabChange = useCallback((tab: string) => {
     if (tab === "Home") {
-      // Clear search results when going to Home
       setSearchResults([]);
       setSearchQuery("");
       if (currentSearchValueRef.current) currentSearchValueRef.current = "";
 
       if (activeTab === "Home") {
-        // Force reset if already on Home
         setResetHomeCounter(prev => prev + 1);
       }
     }
@@ -196,7 +208,7 @@ export default function App() {
   }, [activeTab]);
 
   const handleSearchWithValue = useCallback(async (searchValue: string) => {
-    if (!searchValue || searchValue.length < 2) {
+    if (!apiBaseUrl || !searchValue || searchValue.length < 2) {
       setSearchResults([]);
       setActiveTab("Home");
       return;
@@ -206,7 +218,7 @@ export default function App() {
 
     setIsSearching(true);
     try {
-      const url = `${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}`;
+      const url = `${apiBaseUrl}/search?q=${encodeURIComponent(searchValue)}`;
       console.log('Searching:', url);
 
       const response = await fetch(url, {
@@ -245,12 +257,12 @@ export default function App() {
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [apiBaseUrl]);
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    currentSearchValueRef.current = value; // Save the current value
+    currentSearchValueRef.current = value;
 
     console.log('User typed in search:', value);
 
@@ -265,16 +277,12 @@ export default function App() {
       return;
     }
 
-    // Start debouncing animation
     setIsDebouncing(true);
 
-    // Wait 3 seconds after user stops typing before searching
     searchDebounceTimer.current = setTimeout(() => {
       setIsDebouncing(false);
-      // Use the ref value instead of the closure-captured value
       const currentValue = currentSearchValueRef.current.trim();
       if (currentValue.length >= 2) {
-        // Pass the current value from ref to handleSearch
         handleSearchWithValue(currentValue);
       }
     }, 2000);
@@ -315,10 +323,10 @@ export default function App() {
   }, []);
 
   const handlePlaySong = useCallback(async (song: Song, skipOnError: boolean = false, keepMusicVideo: boolean = false) => {
+    if (!apiBaseUrl) return;
     const shouldPlayWithMusicVideo = keepMusicVideo || isMusicVideoActiveRef.current;
 
     if (shouldPlayWithMusicVideo) {
-      // Keep MV overlay alive for the next track
       setIsMusicVideoActive(true);
       setIsLoadingMv(true);
       setIsMvVideoReady(false);
@@ -333,9 +341,8 @@ export default function App() {
     try {
       let resolvedSong = song;
 
-      // Fetch stream if missing
       if (!song.stream_url) {
-        const url = `${API_BASE_URL}/stream/${song.videoId}`;
+        const url = `${apiBaseUrl}/stream/${song.videoId}`;
         console.log('Fetching stream:', url);
 
         const response = await fetch(url, {
@@ -371,14 +378,13 @@ export default function App() {
         setIsPlaying(true);
         if (audioRef.current) audioRef.current.currentTime = 0;
       } else {
-        setIsPlaying(false); // will be set to true by the MV readiness effect
+        setIsPlaying(false);
       }
       setShowMusicPlayer(true);
 
-      // If MV mode is on, also fetch the MV stream for this song
       if (shouldPlayWithMusicVideo) {
         try {
-          const mvUrl = `${API_BASE_URL}/search/exactwithMV?song_title=${encodeURIComponent(resolvedSong.title)}&artist=${encodeURIComponent(resolvedSong.uploader)}`;
+          const mvUrl = `${apiBaseUrl}/search/exactwithMV?song_title=${encodeURIComponent(resolvedSong.title)}&artist=${encodeURIComponent(resolvedSong.uploader)}`;
           const mvResponse = await fetch(mvUrl, {
             method: "GET",
             headers: {
@@ -410,7 +416,6 @@ export default function App() {
       console.error('Stream error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      // If skipOnError is true, try to play next song instead of showing alert
       if (skipOnError && isPlayingFromArtistRef.current && artistQueue) {
         console.log('Skipping failed song, trying next...');
         playNextInArtistQueue(shouldPlayWithMusicVideo);
@@ -423,7 +428,7 @@ export default function App() {
     } finally {
       setIsLoadingStream(false);
     }
-  }, []);
+  }, [apiBaseUrl]);
 
   const handleSetPlaylist = useCallback((songs: Song[], currentIndex: number) => {
     setPlaylist(songs);
@@ -436,17 +441,16 @@ export default function App() {
   }, []);
 
   const playNextInArtistQueue = useCallback(async (preferMusicVideo: boolean = false) => {
-    if (!artistQueue || !isPlayingFromArtistRef.current) return;
+    if (!apiBaseUrl || !artistQueue || !isPlayingFromArtistRef.current) return;
 
     const nextIndex = artistQueue.currentIndex + 1;
 
-    // Check if there's a next song in the current album
     if (nextIndex < artistQueue.songs.length) {
       const nextSong = artistQueue.songs[nextIndex];
       console.log('Playing next song in artist queue:', nextSong.song_name);
 
       try {
-        const searchUrl = `${API_BASE_URL}/search/exact?song_title=${encodeURIComponent(nextSong.song_name)}&artist=${encodeURIComponent(artistQueue.artistName)}`;
+        const searchUrl = `${apiBaseUrl}/search/exact?song_title=${encodeURIComponent(nextSong.song_name)}&artist=${encodeURIComponent(artistQueue.artistName)}`;
         const response = await fetch(searchUrl, {
           headers: {
             'Accept': 'application/json',
@@ -457,7 +461,6 @@ export default function App() {
 
         if (!response.ok) {
           console.error(`Failed to fetch next song: ${response.status}`);
-          // Update index and try next song
           setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
           playNextInArtistQueue(preferMusicVideo);
           return;
@@ -465,7 +468,6 @@ export default function App() {
 
         const songData = await response.json();
 
-        // Check if stream_url exists
         if (!songData.stream_url) {
           console.log('Next song has no stream_url, skipping...');
           setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
@@ -489,7 +491,6 @@ export default function App() {
         handlePlaySong(playerSong, true, preferMusicVideo);
       } catch (error) {
         console.error('Error playing next song in queue:', error);
-        // Try next song
         setArtistQueue(prev => prev ? { ...prev, currentIndex: nextIndex } : null);
         playNextInArtistQueue(preferMusicVideo);
       }
@@ -497,10 +498,10 @@ export default function App() {
       console.log('Reached end of artist queue');
       isPlayingFromArtistRef.current = false;
     }
-  }, [artistQueue, handlePlaySong]);
+  }, [apiBaseUrl, artistQueue, handlePlaySong]);
 
   const playNextSong = useCallback(async (preferMusicVideo: boolean = false) => {
-    if (playlist.length === 0 || currentSongIndex === -1 || isLoadingStream) return;
+    if (!apiBaseUrl || playlist.length === 0 || currentSongIndex === -1 || isLoadingStream) return;
 
     const nextIndex = currentSongIndex + 1;
     if (nextIndex >= playlist.length) {
@@ -511,9 +512,8 @@ export default function App() {
     const nextSong = playlist[nextIndex];
     setCurrentSongIndex(nextIndex);
 
-    // Fetch the full song data using the search API
     try {
-      const searchUrl = `${API_BASE_URL}/search/exact?song_title=${encodeURIComponent(nextSong.title)}&artist=${encodeURIComponent(nextSong.uploader)}`;
+      const searchUrl = `${apiBaseUrl}/search/exact?song_title=${encodeURIComponent(nextSong.title)}&artist=${encodeURIComponent(nextSong.uploader)}`;
       console.log('Auto-playing next song:', searchUrl);
 
       const response = await fetch(searchUrl, {
@@ -526,7 +526,7 @@ export default function App() {
 
       if (!response.ok) {
         console.error(`Failed to fetch next song: ${response.status}`);
-        return; // Stop trying if fetch fails
+        return;
       }
 
       const songData = await response.json();
@@ -542,9 +542,8 @@ export default function App() {
       handlePlaySong(playerSong, false, preferMusicVideo);
     } catch (error) {
       console.error('Error playing next song:', error);
-      // Don't recursively call - just log the error
     }
-  }, [playlist, currentSongIndex, isLoadingStream, handlePlaySong]);
+  }, [apiBaseUrl, playlist, currentSongIndex, isLoadingStream, handlePlaySong]);
 
   // Add event listener for when audio ends to auto-play next song
   useEffect(() => {
@@ -552,11 +551,9 @@ export default function App() {
     if (!audio) return;
 
     const handleEnded = () => {
-      // If MV overlay is active, ignore main audio ended events
       if (isMusicVideoActiveRef.current) return;
       console.log('Song ended, checking what to play next...');
 
-      // Prioritize artist queue if playing from artist view
       if (isPlayingFromArtistRef.current && artistQueue) {
         playNextInArtistQueue();
       } else if (playlist.length > 0) {
@@ -572,7 +569,6 @@ export default function App() {
   }, [playNextSong, playNextInArtistQueue, artistQueue, playlist]);
 
   const handleClosePlayer = useCallback(() => {
-    // Always close MV overlay if open
     setIsMusicVideoActive(false);
     setMvStream(null);
     setMvError(null);
@@ -601,7 +597,7 @@ export default function App() {
 
   const togglePlayPause = useCallback(() => {
     if (!currentSong) return;
-    setIsPlaying(prevIsPlaying => !prevIsPlaying);
+    setIsPlaying(prev => !prev);
   }, [currentSong]);
 
   const handleTimeUpdate = () => {
@@ -625,7 +621,6 @@ export default function App() {
     const newTime = percentage * duration;
 
     a.currentTime = newTime;
-    // keep MV video in sync on seek
     if (isMusicVideoActive && mvVideoRef.current) {
       try {
         mvVideoRef.current.currentTime = newTime;
@@ -673,14 +668,12 @@ export default function App() {
   const closeMusicVideo = useCallback(() => {
     setIsMusicVideoActive(false);
 
-    // stop MV playback
     if (mvAudioRef.current) mvAudioRef.current.pause();
     if (mvVideoRef.current) mvVideoRef.current.pause();
 
     setIsMvVideoReady(false);
     setIsMvAudioReady(false);
 
-    // restore main audio position + play state
     const mainAudio = audioRef.current;
     if (mainAudio && currentSong) {
       mainAudio.currentTime = resumeTimeRef.current || 0;
@@ -692,18 +685,16 @@ export default function App() {
   }, [currentSong, duration]);
 
   const handleToggleMusicVideo = useCallback(async () => {
-    if (!currentSong) return;
+    if (!apiBaseUrl || !currentSong) return;
 
     if (isMusicVideoActiveRef.current) {
       closeMusicVideo();
       return;
     }
 
-    // Snapshot current listening position/state so we can restore it later
     resumeTimeRef.current = audioRef.current?.currentTime || 0;
     resumeWasPlayingRef.current = isPlaying;
 
-    // Pause main audio while switching to MV mode
     if (audioRef.current) audioRef.current.pause();
     setIsPlaying(false);
 
@@ -715,7 +706,7 @@ export default function App() {
     setMvStream(null);
 
     try {
-      const url = `${API_BASE_URL}/search/exactwithMV?song_title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.uploader)}`;
+      const url = `${apiBaseUrl}/search/exactwithMV?song_title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.uploader)}`;
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -732,7 +723,6 @@ export default function App() {
 
       const data: VideoStreamResponse = await response.json();
       setMvStream(data);
-      // preload video element time to match audio after metadata
       if (mvVideoRef.current) {
         mvVideoRef.current.load();
       }
@@ -742,7 +732,7 @@ export default function App() {
       setMvError(msg);
       setIsLoadingMv(false);
     }
-  }, [currentSong, isPlaying, closeMusicVideo]);
+  }, [apiBaseUrl, currentSong, isPlaying, closeMusicVideo]);
 
   // Keep MV <video> synced with MV <audio>
   useEffect(() => {
@@ -754,7 +744,6 @@ export default function App() {
     let raf: number | null = null;
 
     const sync = () => {
-      // only adjust if drift is noticeable
       if (Math.abs(v.currentTime - a.currentTime) > 0.35) {
         try {
           v.currentTime = a.currentTime;
@@ -770,24 +759,23 @@ export default function App() {
     };
 
     const onPlay = () => {
-      // video should follow audio play state
       const p = v.play();
       if (p !== undefined) p.catch(() => undefined);
     };
 
     const onPause = () => v.pause();
 
-    a.addEventListener("timeupdate", sync);
-    a.addEventListener("seeking", sync);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
+    a.addEventListener("timeupdate", sync, false);
+    a.addEventListener("seeking", sync, false);
+    a.addEventListener("play", onPlay, false);
+    a.addEventListener("pause", onPause, false);
     raf = requestAnimationFrame(rafSync);
 
     return () => {
-      a.removeEventListener("timeupdate", sync);
-      a.removeEventListener("seeking", sync);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
+      a.removeEventListener("timeupdate", sync, false);
+      a.removeEventListener("seeking", sync, false);
+      a.removeEventListener("play", onPlay, false);
+      a.removeEventListener("pause", onPause, false);
       if (raf !== null) cancelAnimationFrame(raf);
     };
   }, [isMusicVideoActive, mvStream]);
@@ -797,7 +785,6 @@ export default function App() {
     if (isMusicVideoActive && isMvVideoReady && isMvAudioReady && isLoadingMv) {
       console.log('MV both streams ready, starting playback...');
 
-      // Ensure sync before playing
       const a = mvAudioRef.current;
       const v = mvVideoRef.current;
       if (a && v) {
@@ -846,15 +833,12 @@ export default function App() {
   }, [isMusicVideoActive, isPlaying]);
 
   const handleToggleMenu = useCallback(() => {
-    // Toggle sidebar or player menu
     if (isMobileView) {
       toggleSidebar();
     }
-    // Add additional menu logic if needed
   }, [isMobileView, toggleSidebar]);
 
   const handleToggleMic = useCallback(() => {
-    // Implement voice control or search functionality
     console.log('Mic button clicked - implement voice search');
   }, []);
 
@@ -884,8 +868,6 @@ export default function App() {
     });
     setIsLoggedIn(true);
     setShowRegisterPage(false);
-
-    // Navigate to home
     setActiveTab("Home");
   }, []);
 
@@ -899,8 +881,6 @@ export default function App() {
     });
     setIsLoggedIn(true);
     setShowLoginModal(false);
-
-    // Navigate to home
     setActiveTab("Home");
   }, []);
 
@@ -918,7 +898,6 @@ export default function App() {
   }, []);
 
   const handleChangePassword = useCallback(() => {
-    // Placeholder for now
     alert("Change password functionality will be implemented in the next update.");
   }, []);
 
@@ -941,13 +920,13 @@ export default function App() {
     } catch (error) {
       console.error('Failed to detect country:', error);
     }
-    return 'us'; // Default to US
+    return 'us';
   };
 
-  // Fetch top global artists
   const fetchTopGlobalArtists = async () => {
+    if (!apiBaseUrl) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/topglobalartists`, {
+      const response = await fetch(`${apiBaseUrl}/topglobalartists`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -968,10 +947,10 @@ export default function App() {
     }
   };
 
-  // Fetch top global songs
   const fetchTopGlobalSongs = async () => {
+    if (!apiBaseUrl) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/topglobalsongs`, {
+      const response = await fetch(`${apiBaseUrl}/topglobalsongs`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -992,10 +971,10 @@ export default function App() {
     }
   };
 
-  // Fetch top country songs
   const fetchTopCountrySongs = async (country: string) => {
+    if (!apiBaseUrl) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/topcountrysongs/${country}`, {
+      const response = await fetch(`${apiBaseUrl}/topcountrysongs/${country}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -1016,9 +995,9 @@ export default function App() {
     }
   };
 
-  // Fetch home page data when activeTab is Home
+  // Fetch home page data when activeTab is Home and apiBaseUrl is available
   useEffect(() => {
-    if (activeTab === "Home" && searchResults.length === 0 && !homeDataLoadedRef.current) {
+    if (apiBaseUrl && activeTab === "Home" && searchResults.length === 0 && !homeDataLoadedRef.current) {
       setIsLoadingHomeData(true);
       homeDataLoadedRef.current = true;
 
@@ -1026,7 +1005,6 @@ export default function App() {
         const country = await detectUserCountry();
         setUserCountry(country);
 
-        // Fetch all data in parallel
         await Promise.all([
           fetchTopGlobalArtists(),
           fetchTopGlobalSongs(),
@@ -1039,12 +1017,10 @@ export default function App() {
       loadHomeData();
     }
 
-    // Reset home data loaded flag when search results appear
     if (searchResults.length > 0) {
       homeDataLoadedRef.current = false;
     }
-  }, [activeTab, searchResults.length]);
-
+  }, [apiBaseUrl, activeTab, searchResults.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1062,6 +1038,14 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentSong, isPlaying]);
+
+  if (!apiBaseUrl) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#1a1a1a', color: '#fff' }}>
+        Connecting to server…
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -1123,7 +1107,7 @@ export default function App() {
           isLoadingHomeData={isLoadingHomeData}
           onShowSignUp={handleShowSignUp}
           onSearch={handleSearchWithValue}
-          apiBaseUrl={API_BASE_URL}
+          apiBaseUrl={apiBaseUrl}
           onSetPlaylist={handleSetPlaylist}
           isPlayingAnySong={currentSong !== null}
           currentSong={currentSong}
@@ -1210,7 +1194,6 @@ export default function App() {
           onLoadedMetadata={() => {
             const a = mvAudioRef.current;
             if (!a) return;
-            // restore previous listening position
             a.currentTime = resumeTimeRef.current || 0;
             setDuration(a.duration);
             setIsMvAudioReady(true);
@@ -1218,11 +1201,9 @@ export default function App() {
           onEnded={() => {
             console.log('MV audio ended, moving to next song with music video...');
 
-            // Stop current MV playback cleanly
             if (mvAudioRef.current) mvAudioRef.current.pause();
             if (mvVideoRef.current) mvVideoRef.current.pause();
 
-            // Auto-play next song while keeping MV mode if possible
             if (isPlayingFromArtistRef.current && artistQueue) {
               playNextInArtistQueue(true);
             } else if (playlist.length > 0) {
@@ -1262,7 +1243,7 @@ export default function App() {
           setShowRegisterPage(false);
           setShowLoginModal(true);
         }}
-        apiBaseUrl={API_BASE_URL}
+        apiBaseUrl={apiBaseUrl}
       />
 
       {/* Login Modal */}
@@ -1271,7 +1252,7 @@ export default function App() {
         onClose={() => setShowLoginModal(false)}
         onLoginSuccess={handleLoginSuccess}
         onSignUpContinue={handleContinueToRegister}
-        apiBaseUrl={API_BASE_URL}
+        apiBaseUrl={apiBaseUrl}
       />
     </div>
   );
